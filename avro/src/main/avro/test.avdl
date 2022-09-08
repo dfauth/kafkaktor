@@ -1,0 +1,13 @@
+@namespace("com.github.dfauth.avro.test")
+protocol TestProtocol {
+
+  record TestRequest {
+    long key;
+    string value;
+  }
+
+  record TestResponse {
+    long key;
+    string value;
+  }
+}

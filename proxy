@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+    <!-- Note: It is strongly recommended that you do NOT make large changes to this file. Changing DOM structure or classes may prevent
+         the page from functioning correctly. Especially important pieces have been marked as such with comments
+         and should not be changed for any reason. -->
+<head>
+    <meta charset="utf-8" />
+    <meta name="referrer" content="never" />
+    <title localize="[dns_unresolved_hostname.httpMessage]">Network Error</title>
+
+
+
+
+    <!-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        WARNING: DO NOT REMOVE!
+        THIS SECTION LOADS ALL PAGE FUNCTIONALITY
+        REMOVING THIS WILL PREVENT BLOCK PAGES FROM FUNCTIONING CORRECTLY
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
+    <!-- START --- DO NOT REMOVE --- START -->
+        <script type="text/javascript">
+                window.onload = function() {
+        var externalLinks = function() {
+            if (!document.getElementsByTagName) return;
+            var anchors = document.getElementsByTagName("a");
+            for (var i=0; i<anchors.length; i++) {
+                var anchor = anchors[i];
+                var rel = anchor.getAttribute("rel") || '';
+                if (anchor.getAttribute("href") && rel === "external") {
+                    anchor.target = "_blank";
+                }
+                anchor.setAttribute("rel", rel + " noreferrer");
+            }
+        };
+        externalLinks();
+
+        if (errors.length !== 0 ) {
+            var localize = function() {
+                var find = $("[localize]");
+
+                $(find).each(function(){
+                    var transTxtKey;
+                    var key=$(this).attr('localize').replace("[","").replace("]","");
+                    var keys=key.split(/\./);
+
+                    if (keys.length < 1) {
+                        return false;
+                    }
+
+                    var textObject = errors;
+                    while(keys.length > 0 && textObject) {
+                        textObject = textObject[keys.shift()];
+                    }
+                    transTxtKey = textObject;
+
+                    if(transTxtKey) {
+                        $(this).html(transTxtKey);
+                    }
+                });
+
+            };
+            localize();
+        }
+
+// once localized, replace the non-runtime evaluated variables with live content.
+    var fixprxevals = function() {
+
+        $("a#coach-continue-url").attr("href", $('#coach_continue_url_div').text());
+        $("#application-name").text('"' + $('#application_name').text() + '"');
+        $("#application-action-name").text('"' + $('#application_action_name').text() + '"');
+        $("#response-categories").text('"' + $('#response_categories').text() + '"');
+        $("#url-host").text('"' + $('#url_host').text() + '"');
+        $("#url-address").text('"' + $('#url_address').text() + '"');
+        $("#url-port").text('"' + $('#url_port').text() + '"');
+        $("#client_address").text('"' + $('#client_address').text() + '"');
+        $("#category-review-url").html('<a href="' + $('#category_review_url').text() + '">http://sitereview.bluecoat.com</a>');
+        $("#last-error").text('"' + $('#last_error').text() + '"');
+        $("#x-cs-auth-form-action-url").text('"' + $('#x_cs_auth_form_action_url').text() + '"');
+        $("#x-auth-challenge-string").text('"' + $('#x_auth_challenge_string').text() + '"');
+        $("#x-cs-auth-form-domain-field").text('"' + $('#x_cs_auth_form_domain_field').text() + '"');
+        $("#cs-username").text('"' + $('#cs_username').text() + '"');
+        $("#x-cs-auth-request-id").text('"' + $('#x_cs_auth_request_id').text() + '"');
+        $("#x-auth-private-challenge-state").text('"' + $('#x_auth_private_challenge_state').text() + '"');
+        $("#sc-auth-status").text('"' + $('#sc_auth_status').text() + '"');
+        $("#reason").text('"' + $('#reason').text() + '"');
+        $("#method").text('"' + $('#method').text() + '"');
+        $("#x-radius-splash-username").text('"' + $('#x_radius_splash_username').text() + '"');
+        $("#x-radius-splash-session-id").text('"' + $('#x_radius_splash_session_id').text() + '"');
+        $("#x-rs-ocsp-error").text('"' + $('#x_rs_ocsp_error').text() + '"');
+        $("#x-virus-id").text('"' + $('#x_virus_id').text() + '"');
+        $("#x-virus-details").text('"' + $('#x_virus_details  ').text() + '"');
+        $("#cpUsername").attr("value", $('#cs_username').text());
+        $("#ssl-failure-reason").text('"' + $('#ssl_failure_reason').text() + '"');
+        $("#server-connection-socket-errno").text('"' + $('#server_connection_socket_errno').text() + '"');
+        $("#icap-error-details").text('"' + $('#icap_error_details').text() + '"');
+        $("a#redirect-location").attr("href", $('#redirect_location').text());
+        $("a#site-review").attr("href", "http://sitereview.bluecoat.com/index.jsp?referrer=bccloud&url=" + $('#url_host').text());
+        $("#bcExceptionRationale").text($('#exception_request_rationale').text() || $('#exception_rationale').text() || "N/A");};
+    fixprxevals();
+
+        $("#pwinput").keypress(function(e) {
+            if(e.keyCode === 13) { return false; }
+        });
+
+        $("#pwinput").focus();
+        $("#sesame").click(function() {
+            var supplied = $("#pwinput").val();
+            var hashed = $.md5(supplied).toUpperCase();
+            if(supplied) {
+                valpw(hashed); return false;
+            } else {
+                $("#errorNotify").show("fast");
+                var trans = errors["validations"].password_override.notSupplied;
+                $("#errorNotify").html("<div localize='[validations.password_override.notSupplied]'>" + trans + "</div>");
+                $("#pwinput").addClass("error");
+                return false;
+            }
+        });
+
+        var detailsShowing = false;
+        $('.detFlip').click(function() {
+            if(!detailsShowing){
+                $("#detMore").hide();
+                $("#detLess").show();
+                $("#additionalInfo").show('fast');
+            } else {
+                $("#detMore").show();
+                $("#detLess").hide();
+                $("#additionalInfo").hide('fast');
+            }
+            detailsShowing = !detailsShowing;
+        });
+        $("#pwinput").click(function() {
+            $("#errorNotify").hide("fast");
+            $("#pwinput").removeClass("error");
+            this.value = "";
+        });
+
+        var goTo = function(url) {
+            var a = document.createElement("a");
+            if(!a.click) {
+                window.location=url;
+                return;
+            }
+            a.setAttribute("href", url);
+            a.style.display = "block";
+            $("body").append(a);
+            a.click();
+        };
+
+        function valpw(hashed) {
+            if(hashed === $('#hashedpw').text()) {
+                goTo($('#jumpto').text());
+            } else {
+                $("#errorNotify").show("fast");
+                var trans = errors.validations.password_override.incorrectPassword;
+                $("#errorNotify").html("<div localize='[validations.password_override.incorrectPassword]'>" + trans + "</div>");
+                $("#pwinput").addClass("error");
+                return false;
+            }
+        }
+
+        if($('#contactNameValue').text() === '') $('#contactName').hide();
+        if($('#contactPhoneValue').text() === '') $('#contactPhone').hide();
+        if($('#contactEmailValue').text() === '') $('#contactEmail').hide();
+
+        if (String.prototype.trim && ["unlicensed", "unavailable", "none", "invalid"].indexOf($("#addClientGeolocation .additional").text().trim().toLowerCase()) !== -1) {
+            $("#addClientGeolocation").hide();
+        }
+    };
+
+document.writeln('<script type="text/javascript" src="https://portal.threatpulse.com/ex/5.0/js/jquery-1.5.min.js"><\/script>');
+document.writeln('<script type="text/javascript" src="//notify.bluecoat.com/ex/5.0/js/lang/exceptions.js"><\/script>');
+document.writeln('<script type="text/javascript" src="https://portal.threatpulse.com/ex/5.0/js/jquery.md5.min.js"><\/script>');
+
+        </script>
+    <!-- END --- DO NOT REMOVE --- END -->
+
+
+
+
+    <!-- This loads default Symantec styling -->
+   	<style type="text/css">
+       #logo a {
+    background-image: url("//portal.threatpulse.com/brandlogo?cid=978c60aa262a4f728f0a58a53350e7d9&lfn=errorlogo.png");
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: contain;
+}
+    </style>
+    <!-- This will load the default Symantec error page styling, as configured in the Symantec portal -->
+    <link rel="stylesheet" type="text/css" href="https://portal.threatpulse.com/ex/5.0/css/style0204.css" />
+    <!-- This will load the Symantec favicon -->
+    <link rel="shortcut icon" href="https://portal.threatpulse.com/ex/5.0/img/favicon.ico" />
+</head>
+
+<body class="bodydrop">
+<div id="outer">
+    <div id="container" class="int curved">
+        <div id="branding">
+            <div class="curved" id="logo">
+                <a rel="external" title="Symantec" href="http://www.symantec.com/">Symantec</a>
+            </div>
+        </div>
+        <div id="content">
+            <div id="bodyCopy">
+                <div id="exceptionDetails" class="int">
+                    <h1 id="doctitle" localize="[dns_unresolved_hostname.httpMessage]">Network Error</h1>
+
+
+
+
+                    <!-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                         WARNING: DO NOT REMOVE!
+                         THIS SECTION IS USED TO INJECT KEY PAGE FUNCTIONALITY INCLUDING:
+                           - EXCEPTION DETAILS (DESCRIPTION)
+                           - INPUT TEXT FIELD FOR PASSWORD OVERRIDE
+                           - MESSAGE AND PROCEED BUTTON FOR COACHING
+                         REMOVING THIS WILL PREVENT BLOCK PAGES FROM WORKING
+                         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
+                    <!-- START --- DO NOT REMOVE --- START -->
+                        <div id="message">
+                            <div localize="[dns_unresolved_hostname.message]">
+                                Your request could not be completed. <p>The URL you entered, *, could not be found. Please check the URL and try again.<span class="displayNone">&#160;</span>
+                            </div>
+                        </div>
+                    <!-- END --- DO NOT REMOVE --- END -->
+
+
+
+
+                    <div id="help">
+                        <div localize="[dns_unresolved_hostname.help]">
+                            <span class="displayNone">&#160;</span>
+                        </div>
+                    </div>
+                    <p id="httpCode"><span localize="[techSupport]">Tech support information</span>: dns_unresolved_hostname
+                        <a class="detFlip" href="javascript:void(0);"><span id="detMore" localize="[more]">more</span></a>
+                        <a class="detFlip" href="javascript:void(0);"><span id="detLess" localize="[less]">less</span></a>
+                    </p>
+
+                    <p>
+                        <span localize="[contact]">For assistance, contact your network support team.</span>
+                    </p>
+
+                    <p id="contactName">
+                        <span localize="[name]">Name</span><span>:&#160;</span><span id="contactNameValue">SGX Helpdesk</span>
+                    </p>
+
+                    <p id="contactPhone">
+                        <span localize="[phone]">Phone</span><span>:&#160;</span><span id="contactPhoneValue">+65 6236 8500</span>
+                    </p>
+
+                    <p id="contactEmail">
+                        <span localize="[email]">Email</span><span>:&#160;</span><span id="contactEmailValue"><a href="mailto:it_helpdesk@sgx.com?subject=Issue%20Accessing%20Website:%20http:&#x2F;&#x2F;*&#x2F;
+&amp;body=Hi Web Isolation Team, %0D%0A
+%0D%0A
+Reporting issue when accessing URL: http:&#x2F;&#x2F;*&#x2F; %0D%0A
+Client IP: 10.232.66.20 %0D%0A
+User: SGXDO\FAUTHD %0D%0A
+URL Categories: Uncategorized %0D%0A
+URL Risk Level: 6 %0D%0A
+%0D%0A
+Exception Type: dns_unresolved_hostname %0D%0A
+Exception Summary: Network Error %0D%0A
+Exception Details: Your request could not be completed. <p>The URL you entered, *, could not be found. Please check the URL and try again.">it_helpdesk@sgx.com</a></span>
+
+
+                    </p>
+                </div>
+                <div id="additionalInfo" class="int curved">
+                    <ul>
+                        <li id="addIP"><span localize="[clientIP]">Client IP:</span> <span class="additional">10.232.66.20
+                            <span class="displayNone">&#160;</span></span></li>
+                        <li id="addUserName"><span localize="[username]">Username:</span> <span class="additional">SGXDO\FAUTHD
+                            <span class="displayNone">&#160;</span></span></li>
+                        <li id="addURL"><span localize="[URL]">URL:</span> <span class="additional">http:&#x2F;&#x2F;*&#x2F;
+                            <span class="displayNone">&#160;</span></span></li>
+                        <li id="addUserAgent"><span localize="[userAgent]">User Agent:</span>
+                            <span class="additional">curl&#x2F;7.78.0
+                                <span class="displayNone">&#160;</span>
+                            </span>
+                        </li>
+                        <li id="addGeolocation"><span>Client Geolocation:</span>
+                            <span class="additional">Unavailable
+                                <span class="displayNone">&#160;</span>
+                            </span>
+                        </li>
+                        <li id="addErrorId"><span>Error ID:</span>
+                            <span class="additional"><span id='bcExceptionRationale'></span>
+                                <span class="displayNone">&#160;</span>
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div id="footer">
+            <div id="copyright">&#169; 2022 Singapore Exchange Limited (SGX)</div>
+        </div>
+    </div>
+</div>
+<!-- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     WARNING: DO NOT REMOVE!
+     THIS SECTION ENABLES ALL PAGE FUNCTIONALITY
+     REMOVING THIS WILL PREVENT BLOCK PAGES FROM WORKING
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! -->
+<!-- START --- DO NOT REMOVE --- START -->
+     <div style="display: none">
+    <div id="hashedpw">8664EC50A9F29D1CC392B12AAE37AD5A</div>
+    <div id="jumpto"> </div>
+
+    <div id="coach_continue_url_div"> </div>
+    <div id="application_name">none</div>
+    <div id="application_action_name">-</div>
+    <div id="response_categories">Uncategorized</div>
+    <div id="url_host">*</div>
+    <div id="url_address"></div>
+    <div id="url_port">80</div>
+    <div id="client_address">10.232.66.20</div>
+    <div id="category_review_url">http://sitereview.bluecoat.com/sitereview.jsp?referrer=136&amp;url=http://*/</div>
+    <div id="last_error"></div>
+    <div id="x_cs_auth_form_action_url">http:&#x2F;&#x2F;www.cfauth.com&#x2F;?bcfru=aHR0cDovLyov</div>
+    <div id="x_auth_challenge_string"></div>
+    <div id="x_cs_auth_form_domain_field"></div>
+    <div id="cs_username">FAUTHD</div>
+    <div id="x_cs_auth_request_id"></div>
+    <div id="x_auth_private_challenge_state"></div>
+    <div id="sc_auth_status"></div>
+    <div id="reason">Request could not be handled</div>
+    <div id="method">GET</div>
+    <div id="x_radius_splash_username"></div>
+    <div id="x_radius_splash_session_id">0</div>
+    <div id="x_rs_ocsp_error"></div>
+    <div id="x_virus_id"></div>
+    <div id="x_virus_details"></div>
+    <div id="empty"></div>
+    <div id="ssl_failure_reason"></div>
+    <div id="server_connection_socket_errno"></div>
+    <div id="icap_error_details"></div>
+    <div id="redirect_location"></div>
+    <div id="exception_rationale"></div>
+    <div id="exception_request_rationale"></div>
+</div>
+<!-- END --- DO NOT REMOVE --- END -->
+</body>
+</html>
