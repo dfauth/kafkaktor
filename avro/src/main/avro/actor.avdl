@@ -1,0 +1,19 @@
+@namespace("com.github.dfauth.avro.actor")
+
+protocol ActorProtocol {
+
+  record DirectoryRequest {
+    string name;
+  }
+
+  record DirectoryResponse {
+    string name;
+  }
+
+  record ActorCreationRequest {
+    string name;
+    string className;
+    map<union{string, int, long, double}> properties = {};
+  }
+
+}
