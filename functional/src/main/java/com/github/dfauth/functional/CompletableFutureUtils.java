@@ -26,13 +26,6 @@ public class CompletableFutureUtils {
         };
     }
 
-    public static <T> BiFunction<T, Throwable, Void> asConsumerHandler(Consumer<T> consumer) {
-        return asHandlers(t -> {
-            consumer.accept(t);
-            return null;
-        }, loggingFunction());
-    }
-
     public static <T, R> BiFunction<T, Throwable, R> asHandler(Function<T, R> mapper) {
         return asHandlers(mapper, loggingFunction());
     }
@@ -64,11 +57,11 @@ public class CompletableFutureUtils {
         }
 
         public static <T> CompletionConsumer<T> onSuccess(Consumer<T> consumer) {
-            return new CompletionConsumer(consumer);
+            return new CompletionConsumer<>(consumer);
         }
 
         public CompletionConsumer<T> onFailure(Consumer<Throwable> failureConsumer) {
-            return new CompletionConsumer<T>(successConsumer, failureConsumer);
+            return new CompletionConsumer<>(successConsumer, failureConsumer);
         }
 
         @Override
@@ -95,7 +88,7 @@ public class CompletableFutureUtils {
         }
 
         public static <T,U> CompletionHandler<T,U> onSuccess(Function<T,U> handler) {
-            return new CompletionHandler(handler);
+            return new CompletionHandler<>(handler);
         }
 
         public CompletionHandler<T,U> onFailure(Function<Throwable,U> failureHandler) {

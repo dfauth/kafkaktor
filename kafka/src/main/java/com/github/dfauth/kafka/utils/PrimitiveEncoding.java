@@ -11,8 +11,8 @@ import java.util.stream.Stream;
 public enum PrimitiveEncoding {
 
     STRING_ENCODING(
-            v -> String.class.cast(v).getBytes(),
-            b -> new String(b)
+            v -> ((String) v).getBytes(),
+            String::new
             ),
     INT_ENCODING(
             v -> ByteBuffer.allocate(4).putInt((int)v).array(),
@@ -27,7 +27,7 @@ public enum PrimitiveEncoding {
             b -> ByteBuffer.wrap(b).getChar()
             ),
     BOOL_ENCODING(
-            v -> Boolean.class.cast(v) ? new byte[]{1} : new byte[]{0},
+            v -> (Boolean) v ? new byte[]{1} : new byte[]{0},
             b -> ByteBuffer.wrap(new byte[]{0,b[0]}).getShort() == 1
             ),
     DOUBLE_ENCODING(
@@ -43,10 +43,10 @@ public enum PrimitiveEncoding {
             b -> ByteBuffer.wrap(b).getLong()
             );
 
-    public static byte MAGIC = 0x69;
+    public static final byte MAGIC = 0x69;
 
-    private Function<Object, byte[]> f;
-    private Function<byte[], Object> g;
+    private final Function<Object, byte[]> f;
+    private final Function<byte[], Object> g;
 
     PrimitiveEncoding(Function<Object, byte[]> f, Function<byte[], Object> g) {
         this.f = f;
@@ -56,13 +56,13 @@ public enum PrimitiveEncoding {
     public static Optional<byte[]> trySerialize(Object o) {
         return Stream.of(values()).map(v ->
                 Try.trySilentlyWithCallable(() -> v.serialize(o))
-        ).filter(t -> t.isSuccess()).findFirst().flatMap(t -> t.toOptional());
+        ).filter(Try::isSuccess).findFirst().flatMap(Try::toOptional);
     }
 
     public static Optional<Object> tryDeserialize(byte[] b) {
         return Stream.of(values()).map(v ->
                 Try.trySilentlyWithCallable(() -> v.deserialize(b))
-        ).filter(t -> t.isSuccess()).findFirst().flatMap(t -> t.toOptional());
+        ).filter(Try::isSuccess).findFirst().flatMap(Try::toOptional);
     }
 
     public byte[] serialize(Object o) {
@@ -78,7 +78,7 @@ public enum PrimitiveEncoding {
     public Object deserialize(byte[] b) {
         if(b[0] == MAGIC) {
             return PrimitiveEncoding.values()[ByteBuffer.wrap(new byte[]{0,0,0,b[1]}).getInt()].g.apply(Arrays.copyOfRange(b, 2, b.length));
-        };
+        }
         throw new IllegalArgumentException("Oops");
     }
 }
