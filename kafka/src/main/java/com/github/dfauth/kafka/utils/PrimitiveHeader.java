@@ -31,7 +31,7 @@ public class PrimitiveHeader implements Header {
         return Stream.of(headers.toArray())
                 .map(PrimitiveHeader::fromHeader)
                 .map(h -> h.rehydrate().toMapEntry())
-                .collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue()));
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     public static Iterable<Header> create(Map<String, Object> metadata) {
