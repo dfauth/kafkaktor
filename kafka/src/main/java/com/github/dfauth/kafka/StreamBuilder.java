@@ -20,7 +20,6 @@ import static com.github.dfauth.functional.Function2.peek;
 import static com.github.dfauth.kafka.utils.KafkaUtils.wrapConsumerRecord;
 import static com.github.dfauth.trycatch.TryCatch._Callable;
 import static com.github.dfauth.trycatch.TryCatch._Runnable.tryCatchIgnore;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.function.Function.identity;
 
 public class StreamBuilder<K,V,T,R> {
@@ -38,7 +37,7 @@ public class StreamBuilder<K,V,T,R> {
     private CommitStrategy.Factory commitStrategy = CommitStrategy.Factory.SYNC;
     private Predicate<T> keyFilter = t -> true;
     private BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>(10);
-    private ThreadPoolExecutor executor;
+    private AbstractExecutorService executor;
 
     public static <K,V> StreamBuilder<K,V,K,V> unmappedBuilder() {
         return new StreamBuilder<K,V,K,V>().withKeyMapper(identity()).withValueMapper(identity());
@@ -147,12 +146,8 @@ public class StreamBuilder<K,V,T,R> {
     public KafkaStream<K,V> build() {
         Consumer<ConsumerRecord<T, R>> rc = recordConsumer;
         Predicate<K> kf = k -> keyFilter.test(keyMapper.apply(k));
-        executor = Optional.ofNullable(executor).orElseGet(() -> {
-            ThreadPoolExecutor pool = new ThreadPoolExecutor(2, 4, 60, SECONDS, queue);
-            pool.prestartCoreThread();
-            return pool;
-        });
-        return new KafkaStream<>(new HashMap<>(this.props), this.topic, this.keyDeserializer, this.valueDeserializer, r -> rc.accept(wrapConsumerRecord(r,keyMapper,valueMapper)), pollingDuration, partitionAssignmentListener, partitionRevocationListener, commitStrategy, executor.getQueue(), kf);
+        executor = Optional.ofNullable(executor).orElseGet(() -> ForkJoinPool.commonPool());
+        return new KafkaStream<>(new HashMap<>(this.props), this.topic, this.keyDeserializer, this.valueDeserializer, r -> rc.accept(wrapConsumerRecord(r,keyMapper,valueMapper)), pollingDuration, partitionAssignmentListener, partitionRevocationListener, commitStrategy, executor, kf);
     }
 
     @Slf4j
@@ -165,20 +160,20 @@ public class StreamBuilder<K,V,T,R> {
         private final Duration duration;
         private final Consumer<ConsumerRecord<K,V>> recordConsumer;
         private final AtomicBoolean isRunning = new AtomicBoolean(false);
-        private final BlockingQueue<Runnable> queue;
+        private final AbstractExecutorService executor;
         private final Duration timeout;
         private final RebalanceListener<K,V> partitionRevocationListener;
         private final RebalanceListener<K,V> partitionAssignmentListener;
         private final CommitStrategy.Factory commitStrategyFactory;
         private KafkaConsumer<K,V> consumer;
         private CommitStrategy commitStrategy;
-        private Predicate<ConsumerRecord<K,V>> keyFilter;
+        private final Predicate<ConsumerRecord<K,V>> keyFilter;
 
-        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, Consumer<ConsumerRecord<K,V>> recordConsumer, Duration duration, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, CommitStrategy.Factory commitStrategy, BlockingQueue<Runnable> queue, Predicate<K> keyFilter) {
-            this(props, topic, keyDeserializer, valueDeserializer, recordConsumer, duration, Duration.ofMillis(1000), partitionAssignmentListener, partitionRevocationListener, commitStrategy, queue, keyFilter);
+        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, Consumer<ConsumerRecord<K,V>> recordConsumer, Duration duration, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, CommitStrategy.Factory commitStrategy, AbstractExecutorService executor, Predicate<K> keyFilter) {
+            this(props, topic, keyDeserializer, valueDeserializer, recordConsumer, duration, Duration.ofMillis(1000), partitionAssignmentListener, partitionRevocationListener, commitStrategy, executor, keyFilter);
         }
 
-        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, Consumer<ConsumerRecord<K,V>> recordConsumer, Duration duration, Duration timeout, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, CommitStrategy.Factory commitStrategy, BlockingQueue<Runnable> queue, Predicate<K> keyFilter) {
+        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, Consumer<ConsumerRecord<K,V>> recordConsumer, Duration duration, Duration timeout, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, CommitStrategy.Factory commitStrategy, AbstractExecutorService executor, Predicate<K> keyFilter) {
             this.props = props;
             this.topic = topic;
             this.keyDeserializer = keyDeserializer;
@@ -190,7 +185,7 @@ public class StreamBuilder<K,V,T,R> {
             this.partitionRevocationListener = partitionRevocationListener;
             this.commitStrategyFactory = commitStrategy;
             this.props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-            this.queue = queue;
+            this.executor = executor;
             this.keyFilter = r -> keyFilter.test(r.key());
         }
 
@@ -198,7 +193,7 @@ public class StreamBuilder<K,V,T,R> {
             CompletableFuture<Map<TopicPartition, Offsets>> f = new CompletableFuture<>();
             OffsetContextMap offsetCtx = new OffsetContextMap(f);
             isRunning.set(true);
-            consumer = new KafkaConsumer(props, keyDeserializer, valueDeserializer);
+            consumer = new KafkaConsumer<>(props, keyDeserializer, valueDeserializer);
             commitStrategy = commitStrategyFactory.create(consumer);
             UnaryOperator<Collection<TopicPartition>> x = peek(partitionRevocationListener.withKafkaConsumer(consumer));
             Function<Collection<TopicPartition>, Map<TopicPartition, Offsets>> y = RebalanceProcessor.<K, V>offsets().andThen(partitionAssignmentListener).withKafkaConsumer(consumer);
@@ -217,8 +212,8 @@ public class StreamBuilder<K,V,T,R> {
             return f;
         }
 
-        private void process() {
-            queue.offer(this);
+        private Future<?> process() {
+            return executor.submit(this);
         }
 
         public void run() {
@@ -237,7 +232,7 @@ public class StreamBuilder<K,V,T,R> {
             if(!isRunning.get()) {
                 consumer.close(timeout);
             } else {
-                queue.offer(this);
+                executor.submit(this);
             }
         }
 
