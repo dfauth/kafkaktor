@@ -9,6 +9,10 @@ import static com.github.dfauth.functional.Function2.uncurry;
 
 public interface Tuple2<T1, T2> {
 
+    static <T1,T2> Function<T1, Tuple2<T1, T2>> tuplize(Function<T1,T2> f) {
+        return t1 -> of(t1, f.apply(t1));
+    }
+
     static <T1,T2> Tuple2<T1, T2> of(T1 t1, T2 t2) {
         return new Tuple2<>() {
             @Override

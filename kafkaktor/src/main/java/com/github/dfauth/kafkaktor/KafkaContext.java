@@ -20,8 +20,7 @@ import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import static com.github.dfauth.kafka.RebalanceListener.NoOp;
-import static com.github.dfauth.kafka.RebalanceListener.offsetsFuture;
+import static com.github.dfauth.kafka.RebalanceListener.*;
 import static com.github.dfauth.kafkaktor.st8.KafkaConsumerEvent.ASSIGNMENT;
 import static com.github.dfauth.kafkaktor.st8.KafkaConsumerEvent.REVOCATION;
 import static com.github.dfauth.kafkaktor.st8.KafkaConsumerStateMachine.buildStateMachine;
@@ -74,7 +73,7 @@ public class KafkaContext {
     }
 
     public RebalanceListener<String, byte[]> assignmentListener() {
-        return assignmentListener(NoOp());
+        return assignmentListener(noOp());
     }
 
     public RebalanceListener<String, byte[]> assignmentListener(RebalanceListener<String, byte[]> composeWith) {
@@ -82,7 +81,7 @@ public class KafkaContext {
     }
 
     public RebalanceListener<String, byte[]> revocationListener() {
-        return revocationListener(NoOp());
+        return revocationListener(noOp());
     }
 
     public RebalanceListener<String, byte[]> revocationListener(RebalanceListener<String, byte[]> composeWith) {
