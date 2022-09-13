@@ -1,6 +1,5 @@
 package com.github.dfauth.kafka;
 
-import com.github.dfauth.functional.Tuple2;
 import org.apache.kafka.common.TopicPartition;
 
 import java.time.ZonedDateTime;
@@ -11,6 +10,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.github.dfauth.functional.Tuple2.asMapEntry;
 import static com.github.dfauth.functional.Tuple2.tuplize;
 import static com.github.dfauth.trycatch.TryCatch.Builder.tryCatch;
 import static java.util.function.Function.identity;
@@ -37,7 +37,7 @@ public interface RebalanceListener<K,V> extends KafkaConsumerAware<Consumer<Coll
 
     static <K,V> RebalanceListener<K,V> seekToTimestamp(Function<TopicPartition, ZonedDateTime> f) {
         return c -> tps ->
-                c.offsetsForTimes(tps.stream().map(tuplize(f)).collect(Collectors.toMap(Tuple2::_1, t -> t._2().toInstant().toEpochMilli())))
+                c.offsetsForTimes(tps.stream().map(asMapEntry(f)).collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toInstant().toEpochMilli())))
                         .forEach((tp,o) -> Optional.ofNullable(o).map(_o -> o.offset()).ifPresent(_o -> c.seek(tp,_o)));
     }
 
