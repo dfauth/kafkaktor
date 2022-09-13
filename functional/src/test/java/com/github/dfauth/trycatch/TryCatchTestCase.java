@@ -15,8 +15,8 @@ import static com.github.dfauth.functional.Try.tryWith;
 import static com.github.dfauth.trycatch.AssertingLogger.*;
 import static com.github.dfauth.trycatch.CallableFunction.toFunction;
 import static com.github.dfauth.trycatch.ExceptionalConsumer.toConsumer;
-import static com.github.dfauth.trycatch.TryCatch._Runnable;
 import static com.github.dfauth.trycatch.TryCatch._Callable;
+import static com.github.dfauth.trycatch.TryCatch._Runnable;
 import static com.github.dfauth.trycatch.TryCatch._Runnable.withExceptionLogging;
 import static org.junit.Assert.*;
 
@@ -265,12 +265,12 @@ public class TryCatchTestCase {
             assertInfoLogged(msg -> msg.startsWith("map: "));
         }
         {
-            Try<Integer> t = Try.tryWithCallable(() -> true ? throwRuntimeOops() : null);
-            t.map(peek(r -> logger.info("map: "+r)))
+            Try<Integer> t = Try.tryWithCallable(this::throwRuntimeOops);
+            assertEquals(1, (int)t.map(peek(r -> logger.info("map: "+r)))
                     .recover(_t -> {
                         logger.info("recover: "+_t.getMessage());
-                        return null;
-                    });
+                        return 1;
+                    }).toOptional().get());
             assertExceptionLogged(runtimeOops);
             assertInfoLogged(msg -> msg.startsWith("recover: "));
         }

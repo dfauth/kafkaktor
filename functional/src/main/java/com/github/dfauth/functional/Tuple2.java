@@ -13,6 +13,25 @@ public interface Tuple2<T1, T2> {
         return t1 -> of(t1, f.apply(t1));
     }
 
+    static <T1,T2> Function<T1, Map.Entry<T1, T2>> asMapEntry(Function<T1,T2> f) {
+        return t1 -> of(t1, f.apply(t1)).toMapEntry();
+    }
+
+    static <T1,T2, T3> BiFunction<T1, T2, Map.Entry<T1, T3>> asMapEntry(BiFunction<T1,T2,T3> f) {
+        return (t1, t2) -> {
+            T3 t3 = f.apply(t1, t2);
+            return of(t1, t3).toMapEntry();
+        };
+    }
+
+    private static <V, K, T> BiFunction<K,V,Map.Entry<K,T>> adapt(Function<Map.Entry<K, V>, Map.Entry<K, T>> f) {
+        return (k,v) -> f.apply(Tuple2.of(k, v).toMapEntry());
+    }
+
+    public static <K, V, T> Function<Map.Entry<K,V>, Map.Entry<K,T>> adapt(BiFunction<K, V, Map.Entry<K, T>> f) {
+        return e -> f.apply(e.getKey(), e.getValue());
+    }
+
     static <T1,T2> Tuple2<T1, T2> of(T1 t1, T2 t2) {
         return new Tuple2<>() {
             @Override
