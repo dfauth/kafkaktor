@@ -5,10 +5,11 @@ import org.apache.kafka.common.TopicPartition;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-public class OffsetContextMap implements Function<TopicPartition, Offsets> {
+public class OffsetContextMap implements Function<TopicPartition, Optional<Offsets>> {
 
     private final CompletableFuture<Map<TopicPartition, Offsets>> f;
     private final Map<TopicPartition, Offsets> map = new HashMap<>();
@@ -29,7 +30,7 @@ public class OffsetContextMap implements Function<TopicPartition, Offsets> {
     }
 
     @Override
-    public Offsets apply(TopicPartition topicPartition) {
-        return map.get(topicPartition);
+    public Optional<Offsets> apply(TopicPartition topicPartition) {
+        return Optional.ofNullable(map.get(topicPartition));
     }
 }

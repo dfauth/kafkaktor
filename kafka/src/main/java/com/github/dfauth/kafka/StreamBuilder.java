@@ -36,7 +36,6 @@ public class StreamBuilder<K,V,T,R> {
     private RebalanceListener<K,V> partitionAssignmentListener = consumer -> topicPartitions -> {};
     private CommitStrategy.Factory commitStrategy = CommitStrategy.Factory.SYNC;
     private Predicate<T> keyFilter = t -> true;
-    private BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>(10);
     private AbstractExecutorService executor;
 
     public static <K,V> StreamBuilder<K,V,K,V> unmappedBuilder() {
@@ -53,11 +52,6 @@ public class StreamBuilder<K,V,T,R> {
 
     public static <K,V,T,R> StreamBuilder<K,V,T,R> builder() {
         return new StreamBuilder<>();
-    }
-
-    public StreamBuilder<K,V,T,R> withQueue(BlockingQueue<Runnable> queue) {
-        this.queue = queue;
-        return this;
     }
 
     public StreamBuilder<K,V,T,R> withKeyFilter(Predicate<T> keyFilter) {
@@ -146,7 +140,7 @@ public class StreamBuilder<K,V,T,R> {
     public KafkaStream<K,V> build() {
         Consumer<ConsumerRecord<T, R>> rc = recordConsumer;
         Predicate<K> kf = k -> keyFilter.test(keyMapper.apply(k));
-        executor = Optional.ofNullable(executor).orElseGet(() -> ForkJoinPool.commonPool());
+        executor = Optional.ofNullable(executor).orElseGet(ForkJoinPool::commonPool);
         return new KafkaStream<>(new HashMap<>(this.props), this.topic, this.keyDeserializer, this.valueDeserializer, r -> rc.accept(wrapConsumerRecord(r,keyMapper,valueMapper)), pollingDuration, partitionAssignmentListener, partitionRevocationListener, commitStrategy, executor, kf);
     }
 
@@ -212,8 +206,8 @@ public class StreamBuilder<K,V,T,R> {
             return f;
         }
 
-        private Future<?> process() {
-            return executor.submit(this);
+        private void process() {
+            executor.submit(this);
         }
 
         public void run() {

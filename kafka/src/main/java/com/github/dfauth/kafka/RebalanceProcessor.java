@@ -11,13 +11,13 @@ import java.util.function.Function;
 
 import static com.github.dfauth.functional.Maps.mapTransformerOf;
 
-public interface RebalanceProcessor<K,V,T> extends KafkaConsumerAware<Function<Collection<TopicPartition>,T>, K,V>{
+public interface RebalanceProcessor<K,V,T> extends KafkaConsumerAware<Function<Collection<TopicPartition>,T>, K, V>{
 
     static <K,V> RebalanceProcessor<K,V, Map<TopicPartition, Offsets>> offsets() {
         return c -> tps -> {
             Map<TopicPartition, Long> beginningOffsets = c.beginningOffsets(tps);
-            Map<TopicPartition, Long> endOffsets = c.beginningOffsets(tps);
-            BiFunction<TopicPartition, Long, Offsets> f = (tp, o) -> new Offsets(o, c.position(tp), endOffsets.get(tp));
+            Map<TopicPartition, Long> endOffsets = c.endOffsets(tps);
+            BiFunction<TopicPartition, Long, Offsets> f = (tp, o) -> new Offsets(tp, o, c.position(tp), endOffsets.get(tp));
             return mapTransformerOf(f).apply(beginningOffsets);
         };
     }
