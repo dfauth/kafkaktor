@@ -28,7 +28,7 @@ public enum Unit {
         }
 
         static <I,O> Function<I> of(java.util.function.Function<I, O> f) {
-            return i -> f.apply(i);
+            return f::apply;
         }
 
         static <I,O> Function<I> of(CallableFunction<I, O> f) {
@@ -36,7 +36,7 @@ public enum Unit {
         }
 
         static <I> Function<I> of(Consumer<I> c) {
-            return i -> c.accept(i);
+            return c::accept;
         }
 
         static Function<Unit> of(ExceptionalRunnable r) {

@@ -8,7 +8,7 @@ import java.util.Optional;
 import static com.github.dfauth.functional.Lists.*;
 import static org.junit.Assert.assertEquals;
 
-public class ListsTestCase {
+public class ListsTest {
 
     private static final List<Integer> REF = List.of(1,2,3,4,5,6,7,8);
 
