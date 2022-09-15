@@ -62,6 +62,11 @@ public interface Tuple2<T1, T2> {
                     return false;
                 }
             }
+
+            @Override
+            public String toString() {
+                return String.format("Tuple2(%s, %s)",_1(),_2());
+            }
         };
     }
 
