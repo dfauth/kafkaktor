@@ -11,12 +11,15 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.*;
 import java.util.stream.StreamSupport;
 
-import static com.github.dfauth.functional.Function2.peek;
+import static com.github.dfauth.functional.Functions.peek;
 import static com.github.dfauth.kafka.utils.KafkaUtils.wrapConsumerRecord;
 import static com.github.dfauth.trycatch.TryCatch._Callable;
 import static com.github.dfauth.trycatch.TryCatch._Runnable.tryCatchIgnore;

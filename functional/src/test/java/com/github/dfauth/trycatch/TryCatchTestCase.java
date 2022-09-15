@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Optional;
 import java.util.concurrent.*;
 
-import static com.github.dfauth.functional.Function2.peek;
+import static com.github.dfauth.functional.Functions.peek;
 import static com.github.dfauth.functional.Try.tryWith;
 import static com.github.dfauth.trycatch.AssertingLogger.*;
 import static com.github.dfauth.trycatch.CallableFunction.toFunction;
@@ -23,8 +23,8 @@ import static org.junit.Assert.*;
 public class TryCatchTestCase {
 
     private static final Logger logger = LoggerFactory.getLogger(TryCatchTestCase.class);
-    private static RuntimeException runtimeOops = new RuntimeException("Oops");
-    private static Exception oops = new Exception("Oops");
+    private static final RuntimeException runtimeOops = new RuntimeException("Oops");
+    private static final Exception oops = new Exception("Oops");
 
     private <T> T throwRuntimeOops() {
         throw runtimeOops;
@@ -57,7 +57,7 @@ public class TryCatchTestCase {
 
         // Runnable
         try {
-            _Runnable.tryCatch(() -> throwRuntimeOops());
+            _Runnable.tryCatch(this::throwRuntimeOops);
             fail("Oops, expected exception");
         } catch (RuntimeException e) {
             // expected;
@@ -66,7 +66,7 @@ public class TryCatchTestCase {
 
         // Callable
         try {
-            _Callable.tryCatch(() -> true ? throwOops(): null);
+            _Callable.tryCatch(this::throwOops);
             fail("Oops, expected exception");
         } catch (RuntimeException e) {
             // expected;
@@ -75,7 +75,7 @@ public class TryCatchTestCase {
 
         // void return throws exception
         try {
-            _Runnable.tryCatch(() -> throwOops());
+            _Runnable.tryCatch(this::throwOops);
             fail("Oops, expected exception");
         } catch (RuntimeException e) {
             // expected;
@@ -86,14 +86,14 @@ public class TryCatchTestCase {
     @Test
     public void testTryCatchIgnore() {
 
-        _Runnable.tryCatchIgnore(() -> throwOops());
+        _Runnable.tryCatchIgnore(this::throwOops);
         assertExceptionLogged(oops);
 
         _Runnable.tryCatchIgnore(() -> {
         });
         assertNothingLogged();
 
-        assertEquals(1, _Callable.tryCatchIgnore(() -> throwOops(), 1).intValue());
+        assertEquals(1, _Callable.<Integer>tryCatchIgnore(this::throwOops, 1).intValue());
         assertExceptionLogged(oops);
     }
 
@@ -115,14 +115,11 @@ public class TryCatchTestCase {
         try {
             f.get(1, TimeUnit.SECONDS);
             fail("Oops. expected ExecutionException");
-        } catch (InterruptedException e) {
+        } catch (InterruptedException | TimeoutException e) {
             logger.error(e.getMessage(), e);
             throw new RuntimeException(e);
         } catch (ExecutionException e) {
             // expected
-        } catch (TimeoutException e) {
-            logger.error(e.getMessage(), e);
-            throw new RuntimeException(e);
         }
         assertExceptionLogged(oops);
 
@@ -229,7 +226,7 @@ public class TryCatchTestCase {
         }
 
         {
-            Try<Integer> t = Try.tryWithCallable(() -> true ? throwRuntimeOops() : null);
+            Try<Integer> t = Try.tryWithCallable(this::throwRuntimeOops);
             assertNotNull(t);
             assertTrue(t.isFailure());
             Try<Integer> result = t.flatMap(v -> Try.tryWithCallable(() -> 2/v));
@@ -246,9 +243,7 @@ public class TryCatchTestCase {
             Try<Integer> result = t.flatMap(v -> Try.tryWithCallable(() -> 2/v));
             assertNotNull(result);
             assertTrue(result.isFailure());
-            assertThrows(ArithmeticException.class, () -> {
-                result.toFailure().throwException();
-            });
+            assertThrows(ArithmeticException.class, () -> result.toFailure().throwException());
             assertExceptionLogged(new ArithmeticException("/ by zero"));
         }
     }

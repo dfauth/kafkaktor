@@ -7,7 +7,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
-import static com.github.dfauth.functional.Function2.peek;
+import static com.github.dfauth.functional.Functions.peek;
 import static com.github.dfauth.trycatch.ExceptionalRunnable.asExceptionalRunnable;
 import static com.github.dfauth.trycatch.TryCatch.CallableBuilder.*;
 
@@ -80,7 +80,7 @@ public abstract class TryCatch {
         }
 
         public static <T> Callable<T> withExceptionLogging(Callable<T> c) {
-            return () -> tryCatch(c::call);
+            return () -> tryCatch(c);
         }
     }
 
@@ -99,7 +99,7 @@ public abstract class TryCatch {
         }
 
         public static <T> CallableBuilder<T> tryCatch(Callable<T> r) {
-            return new CallableBuilder(r);
+            return new CallableBuilder<>(r);
         }
     }
 

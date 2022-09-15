@@ -28,7 +28,7 @@ public interface Tuple2<T1, T2> {
         return (k,v) -> f.apply(Tuple2.of(k, v).toMapEntry());
     }
 
-    public static <K, V, T> Function<Map.Entry<K,V>, Map.Entry<K,T>> adapt(BiFunction<K, V, Map.Entry<K, T>> f) {
+    static <K, V, T> Function<Map.Entry<K,V>, Map.Entry<K,T>> adapt(BiFunction<K, V, Map.Entry<K, T>> f) {
         return e -> f.apply(e.getKey(), e.getValue());
     }
 
@@ -42,6 +42,25 @@ public interface Tuple2<T1, T2> {
             @Override
             public T2 _2() {
                 return t2;
+            }
+
+            @Override
+            public int hashCode() {
+                return _1().hashCode() ^ _2().hashCode();
+            }
+
+            @Override
+            public boolean equals(Object obj) {
+                if(obj == this) {
+                    return true;
+                } else if(obj == null) {
+                    return false;
+                } else if(obj instanceof Tuple2) {
+                    Tuple2<T1, T2> other = (Tuple2<T1, T2>) obj;
+                    return other.map((t1,t2) -> t1.equals(_1()) && t2.equals(_2()));
+                } else {
+                    return false;
+                }
             }
         };
     }
