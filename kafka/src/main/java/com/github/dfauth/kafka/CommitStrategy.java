@@ -39,7 +39,7 @@ abstract class CommitStrategy {
         EXTERNAL_SYNC(c -> new ExternalSyncCommitStrategy(c)),
         EXTERNAL_ASYNC(c -> new ExternalAsyncCommitStrategy(c));
 
-        private Function<KafkaConsumer<?, ?>, CommitStrategy> f;
+        private final Function<KafkaConsumer<?, ?>, CommitStrategy> f;
 
         Factory(Function<KafkaConsumer<?, ?>, CommitStrategy> f) {
             this.f = f;

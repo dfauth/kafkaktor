@@ -14,7 +14,7 @@ public interface Event<T,X> {
         return Optional.empty();
     }
 
-    static class Builder<T,X> {
+    class Builder<T,X> {
 
         private T type;
         private Optional<X> payload = Optional.empty();

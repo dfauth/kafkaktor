@@ -26,22 +26,18 @@ public class StateMachine<T,U,V,W,X> {
     }
 
     public StateMachine<T,U,V,W,X> onEvent(Event<V,X> e, U ctx) {
-        current = current.onEvent(e, ctx).map(s -> s).orElse(current);
+        current = current.onEvent(e, ctx).orElse(current);
         return this;
     }
 
     @Slf4j
     public static class Builder<T,U,V,W,X> {
 
-        private final String name;
-        private final U ctx;
         private T initial;
-        private Map<T, State.Builder<T,U,V,W,X>> stateBuilders = new HashMap<>();
+        private final Map<T, State.Builder<T,U,V,W,X>> stateBuilders = new HashMap<>();
         private State<T,U,V,W,X> initialState;
 
         public Builder(String name, U ctx) {
-            this.name = name;
-            this.ctx = ctx;
         }
 
         public State.Builder<T,U,V,W,X> initial(T t) {

@@ -1,7 +1,6 @@
 package com.github.dfauth.functional;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -27,14 +26,15 @@ public class Lists {
     }
 
     public static <T> Tuple2<List<T>,List<T>> partition(List<T> l, Predicate<T> p) {
-        BiFunction<Tuple2<List<T>, List<T>>, Either<T, T>, Tuple2<List<T>, List<T>>> f = (_t, _e) -> {
-            AtomicReference<Tuple2<List<T>, List<T>>> result = new AtomicReference<>(_t);
-            _e.onLeft(_l -> result.set(_t.map((t1, t2) -> Tuple2.of(append(t1, _l), t2))))
-                    .onRight(_r -> result.set(_t.map((t1, t2) -> Tuple2.of(t1, append(t2, _r)))));
-            return result.get();
-        };
+        BiFunction<Tuple2<List<T>, List<T>>, Either<T, T>, Tuple2<List<T>, List<T>>> f = (_t, _e) ->
+            _t.map((t1,t2) ->
+                _e.mapLeft(_l -> concat(t1, _l))
+                        .map(_t1 -> Tuple2.of(_t1, t2))
+                        .orElseGet(() -> Tuple2.of(t1, _e.mapRight(_r -> concat(t2, _r))
+                                .orElseThrow(() -> new IllegalStateException("Either is neither left nor right - should never happen"))))
+            );
         return l.stream()
-                .map(e -> Optional.ofNullable(e).filter(p).map(Either::<T, T>left).orElseGet(() -> Either.right(e)))
+                .map(e -> Optional.ofNullable(e).filter(p).map(Either::<T, T>createLeft).orElseGet(() -> Either.createRight(e)))
                 .reduce(Tuple2.of(emptyList(), emptyList()),
                         f,
                         (t1, t2) -> Tuple2.of(concat(t1._1(), t2._1()),concat(t1._2(), t2._2()))
@@ -59,7 +59,7 @@ public class Lists {
     }
 
     @SafeVarargs
-    public static <T> List<T> append(List<T> l, T... ts) {
+    public static <T> List<T> concat(List<T> l, T... ts) {
         List<T> tmp = new ArrayList<>(l);
         tmp.addAll(Arrays.asList(ts));
         return List.copyOf(tmp);

@@ -1,33 +1,48 @@
 package com.github.dfauth.functional;
 
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public interface Either<L,R> {
-    L left();
-    R right();
+    default L left() {
+        throw new IllegalStateException("Cannot invoke left() on Right");
+    }
+
+    default R right() {
+        throw new IllegalStateException("Cannot invoke right() on Left");
+    }
 
     default boolean isLeft() {
-        return false;
+        return getClass() == Left.class;
     }
 
     default boolean isRight() {
-        return false;
+        return getClass() == Right.class;
     }
 
-    static <L, R> Either<L,R> left(L l) {
+    static <L, R> Either<L,R> createLeft(L l) {
         return new Left<>(l);
     }
 
-    static <L, R> Either<L,R> right(R r) {
+    static <L, R> Either<L,R> createRight(R r) {
         return new Right<>(r);
     }
 
-    default Either<L, R> onLeft(Consumer<L> l) {
-        return this;
+    default void acceptLeft(Consumer<L> c) {
+        Optional.of(this).filter(Either::isLeft).map(Either::left).ifPresent(c);
     }
 
-    default Either<L, R> onRight(Consumer<R> r) {
-        return this;
+    default void acceptRight(Consumer<R> c) {
+        Optional.of(this).filter(Either::isRight).map(Either::right).ifPresent(c);
+    }
+
+    default <T> Optional<T> mapRight(Function<R,T> f) {
+        return Optional.of(this).filter(Either::isRight).map(Either::right).map(f);
+    }
+
+    default <T> Optional<T> mapLeft(Function<L,T> f) {
+        return Optional.of(this).filter(Either::isLeft).map(Either::left).map(f);
     }
 
     class Left<L,R> implements Either<L,R> {
@@ -42,22 +57,6 @@ public interface Either<L,R> {
         public L left() {
             return target;
         }
-
-        @Override
-        public R right() {
-            throw new IllegalStateException("Cannot invoke right() on Left");
-        }
-
-        @Override
-        public boolean isLeft() {
-            return true;
-        }
-
-        @Override
-        public Either<L, R> onLeft(Consumer<L> l) {
-            l.accept(target);
-            return this;
-        }
     }
 
     class Right<L,R> implements Either<L,R> {
@@ -69,24 +68,8 @@ public interface Either<L,R> {
         }
 
         @Override
-        public L left() {
-            throw new IllegalStateException("Cannot invoke left() on Right");
-        }
-
-        @Override
         public R right() {
             return target;
-        }
-
-        @Override
-        public boolean isRight() {
-            return true;
-        }
-
-        @Override
-        public Either<L, R> onRight(Consumer<R> r) {
-            r.accept(target);
-            return this;
         }
     }
 }
