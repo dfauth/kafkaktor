@@ -12,12 +12,11 @@ import java.util.Map;
 
 public class KafkaAvroSerde {
 
-    private final Map<String, Object> config;
-    private KafkaAvroDeserializer deserializer;
-    private KafkaAvroSerializer serializer;
+    private final KafkaAvroDeserializer deserializer;
+    private final KafkaAvroSerializer serializer;
 
     public KafkaAvroSerde(SchemaRegistryClient schemaRegistryClient, String schemaRegistryUrl, boolean isAutoRegisterSchema) {
-        this.config = Map.of(
+        Map<String, Object> config = Map.of(
                 "specific.avro.reader", true,
                 "auto.register.schema", isAutoRegisterSchema,
                 "schema.registry.url", schemaRegistryUrl
@@ -30,7 +29,7 @@ public class KafkaAvroSerde {
         return new Serde<>() {
             @Override
             public Serializer<T> serializer() {
-                return (t,o) -> serializer.serialize(t,o);
+                return serializer::serialize;
             }
 
             @Override
