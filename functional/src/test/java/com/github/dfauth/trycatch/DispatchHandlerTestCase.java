@@ -13,7 +13,7 @@ public class DispatchHandlerTestCase {
 
     @Test
     public void testFailureConsumer() {
-        final Optional<Long>[] result = new Optional[]{Optional.empty()};
+        final Optional<Long>[] result = new Optional[]{Optional.<Long>empty()};
         Try<Long> t = Try.failure(new RuntimeException("Oops"));
         t.dispatch(toDispatcher(r -> result[0] = Optional.of(r)));
         assertTrue(result[0].isEmpty());
@@ -33,7 +33,7 @@ public class DispatchHandlerTestCase {
     public void testFailureFunction() {
         Try<Long> t = Try.failure(new RuntimeException("Oops"));
         try {
-            boolean b = t.dispatch(DispatchHandler.Function.toDespatcher(Optional::of)).isEmpty();
+            t.dispatch(DispatchHandler.Function.toDispatcher(Optional::of));
             fail("Oops");
         } catch (RuntimeException e) {
             // expected
@@ -44,8 +44,8 @@ public class DispatchHandlerTestCase {
     public void testSuccessFunction() {
         Long ref = 1L;
         Try<Long> t = Try.success(ref);
-        assertTrue(t.dispatch(DispatchHandler.Function.toDespatcher(r -> Optional.of(r))).isPresent());
-        assertEquals(t.dispatch(DispatchHandler.Function.toDespatcher(r -> Optional.of(r))).get(), ref);
+        assertTrue(t.dispatch(DispatchHandler.Function.toDispatcher(Optional::of)).isPresent());
+        assertEquals(t.dispatch(DispatchHandler.Function.toDispatcher(Optional::of)).orElseThrow(), ref);
     }
 
     @Test

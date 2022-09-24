@@ -57,7 +57,7 @@ public class Failure<T> implements Try<T> {
         return this.t;
     }
 
-    public void throwException() throws Throwable {
+    public T throwException() throws Throwable {
         throw this.t;
     }
 }

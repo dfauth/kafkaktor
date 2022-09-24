@@ -15,7 +15,7 @@ public interface DispatchHandler<T, R> {
     interface Consumer<T> extends DispatchHandler<T, Unit>, java.util.function.Consumer<T> {
 
         static <T> Consumer<T> toDispatcher(java.util.function.Consumer<T> consumer) {
-            return t -> consumer.accept(t);
+            return consumer::accept;
         }
 
         default Unit dispatch(Failure<T> f) {
@@ -31,12 +31,12 @@ public interface DispatchHandler<T, R> {
 
     interface Function<T,R> extends DispatchHandler<T, R>, java.util.function.Function<T,R> {
 
-        static <T,R> Function<T,R> toDespatcher(java.util.function.Function<T,R> f) {
+        static <T,R> Function<T,R> toDispatcher(java.util.function.Function<T,R> f) {
             return f::apply;
         }
 
         static <T> Function<T,T> extract() {
-            return toDespatcher(java.util.function.Function.identity());
+            return toDispatcher(java.util.function.Function.identity());
         }
 
         default R dispatch(Failure<T> f) {

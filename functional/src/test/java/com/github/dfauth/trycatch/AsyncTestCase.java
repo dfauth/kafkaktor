@@ -6,6 +6,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Optional;
+import java.util.Timer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -13,6 +14,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.github.dfauth.trycatch.AssertingLogger.*;
+import static com.github.dfauth.trycatch.AsyncUtil.asTimerTask;
 import static com.github.dfauth.trycatch.AsyncUtil.executeAsync;
 import static com.github.dfauth.trycatch.TryCatch._Runnable.withExceptionLogging;
 import static java.lang.Thread.sleep;
@@ -79,6 +81,13 @@ public class AsyncTestCase {
             assertExceptionLogged(new ArithmeticException("/ by zero"));
         }
 
+    }
+
+    @Test
+    public void testAsTimerTask() throws ExecutionException, InterruptedException, TimeoutException {
+        CompletableFuture<Void> f = new CompletableFuture<>();
+        new Timer().schedule(asTimerTask(() -> f.complete(null)), 10);
+        f.get(15, TimeUnit.MILLISECONDS);
     }
 
 }
