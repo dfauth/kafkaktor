@@ -19,7 +19,11 @@ import static org.junit.Assert.assertTrue;
 
 public class AssertingLogger implements LoggerFactoryBinder, ILoggerFactory {
 
-    private static Queue<Call> q = new ArrayDeque<>();
+    private static final Queue<Call> q = new ArrayDeque<>();
+
+    public static Queue<Call> getQueue() {
+        return q;
+    }
 
     public static <T> Logger of(Logger delegate) {
         return (Logger) Proxy.newProxyInstance(AssertingLogger.class.getClassLoader(), new Class[]{Logger.class}, (proxy, method, args) -> {
@@ -88,7 +92,7 @@ public class AssertingLogger implements LoggerFactoryBinder, ILoggerFactory {
         });
     }
 
-    static class Call {
+    public static class Call {
 
         private final String methodName;
         private final Object[] args;

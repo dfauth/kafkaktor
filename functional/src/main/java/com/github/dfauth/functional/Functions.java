@@ -1,5 +1,6 @@
 package com.github.dfauth.functional;
 
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -18,6 +19,13 @@ public class Functions {
         return t -> {
             tryCatch(() -> c.accept(t), ignoringConsumer);
             return t;
+        };
+    }
+
+    public static Callable<Void> toCallable(Runnable r) {
+        return () -> {
+            r.run();
+            return null;
         };
     }
 }

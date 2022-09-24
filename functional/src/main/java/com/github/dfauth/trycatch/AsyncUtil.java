@@ -3,7 +3,10 @@ package com.github.dfauth.trycatch;
 import com.github.dfauth.functional.Unit;
 
 import java.util.TimerTask;
-import java.util.concurrent.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
 
 import static com.github.dfauth.functional.Unit.UNIT;
 import static com.github.dfauth.trycatch.TryCatch._Callable.tryCatch;
@@ -14,7 +17,7 @@ public class AsyncUtil {
         return executeAsync(() -> {
             tryCatch(runnable, t -> UNIT);
             return null;
-        }, Executors.newSingleThreadExecutor());
+        });
     }
 
     public static <T> CompletableFuture<T> executeAsync(Callable<T> callable) {
@@ -23,11 +26,10 @@ public class AsyncUtil {
 
     public static <T> CompletableFuture<T> executeAsync(Callable<T> callable, ExecutorService executor) {
         CompletableFuture<T> f = new CompletableFuture<>();
-        executor.submit(() -> tryCatch(() -> {
+        executor.submit(() -> TryCatch._Runnable.tryCatch(() -> {
             T result = callable.call();
             f.complete(result);
-            return result;
-        }, t -> f.completeExceptionally(t)));
+        }, f::completeExceptionally));
         return f;
     }
 

@@ -39,7 +39,6 @@ public class Success<T> implements Try<T> {
 
     @Override
     public <R> Try<R> flatMap(Function<T, Try<R>> f) {
-//        return map(f).toOptional().orElseGet(() -> Try.failure(toFailure().exception()));
         return map(f).toOptional().orElseGet(() -> toFailure().flatMap(f));
     }
 
