@@ -148,7 +148,7 @@ public class StreamBuilder<K,V,T,R> {
     }
 
     @Slf4j
-    public static class KafkaStream<K,V> implements Runnable {
+    public static class KafkaStream<K,V> implements Runnable, AutoCloseable {
 
         private final Map<String, Object> props;
         private final String topic;
@@ -225,7 +225,7 @@ public class StreamBuilder<K,V,T,R> {
                 if(processed > 0) {
                     commitStrategy.tryCommit();
                 }
-            } while(!this.yield(processed));
+            } while(!this.yield(processed) && isRunning.get());
             if(!isRunning.get()) {
                 consumer.close(timeout);
             } else {
@@ -239,6 +239,11 @@ public class StreamBuilder<K,V,T,R> {
 
         public void stop() {
             isRunning.set(false);
+        }
+
+        @Override
+        public void close() {
+            stop();
         }
     }
 }
