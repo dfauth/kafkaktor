@@ -7,25 +7,25 @@ import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 
-public class Lists {
+interface Lists<T> extends List<T> {
 
-    public static <T> Optional<T> headOption(List<T> l) {
+    static <T> Optional<T> headOption(List<T> l) {
         return Optional.ofNullable(l.size() > 0 ? l.get(0) : null);
     }
 
-    public static <T> T head(List<T> l) {
+    static <T> T head(List<T> l) {
         return headOption(l).orElseThrow();
     }
 
-    public static <T> List<T> tail(List<T> l) {
+    static <T> List<T> tail(List<T> l) {
         return l.size() > 1 ? List.copyOf(l.subList(1,l.size())) : emptyList();
     }
 
-    public static <T> Tuple2<T,List<T>> segment(List<T> l) {
+    static <T> Tuple2<T,List<T>> segment(List<T> l) {
         return Tuple2.of(head(l), tail(l));
     }
 
-    public static <T> Tuple2<List<T>,List<T>> partition(List<T> l, Predicate<T> p) {
+    static <T> Tuple2<List<T>,List<T>> partition(List<T> l, Predicate<T> p) {
         BiFunction<Tuple2<List<T>, List<T>>, Either<T, T>, Tuple2<List<T>, List<T>>> f = (_t, _e) ->
             _t.map((t1,t2) ->
                 _e.mapLeft(_l -> concat(t1, _l))
@@ -42,7 +42,7 @@ public class Lists {
     }
 
     @SafeVarargs
-    private static <T> List<T> concat(List<T>... lists) {
+    static <T> List<T> concat(List<T>... lists) {
         return Stream.of(lists).reduce(new ArrayList<>(), (acc, l) -> {
             acc.addAll(l);
             return acc;
@@ -52,17 +52,59 @@ public class Lists {
         });
     }
 
-    public static <T> List<T> reverse(List<T> l) {
+    static <T> List<T> reverse(List<T> l) {
         List<T> tmp = new ArrayList<>(l);
         Collections.reverse(tmp);
         return List.copyOf(tmp);
     }
 
     @SafeVarargs
-    public static <T> List<T> concat(List<T> l, T... ts) {
+    static <T> List<T> concat(List<T> l, T... ts) {
         List<T> tmp = new ArrayList<>(l);
         tmp.addAll(Arrays.asList(ts));
         return List.copyOf(tmp);
     }
 
+    static <T> ExtendedList<T> extendedList(List<T> l) {
+        return new ExtendedList<>(l);
+    }
+
+    default Optional<T> headOption() {
+        return Optional.ofNullable(size() > 0 ? get(0) : null);
+    }
+
+    default T head() {
+        return headOption().orElseThrow();
+    }
+
+    default List<T> tail() {
+        return size() > 1 ? List.copyOf(subList(1,size())) : emptyList();
+    }
+
+    default Tuple2<List<T>, List<T>> partition(Predicate<T> p) {
+        return Lists.partition(this, p);
+    }
+
+    default Tuple2<T,List<T>> segment() {
+        return Lists.segment(this);
+    }
+
+    default List<T> reverse() {
+        return reverse(this);
+    }
+
+    default List<T> append(List<T> l) {
+        return concat(this, l);
+    }
+
+    default List<T> concat(T... ts) {
+        return concat(this, ts);
+    }
+
+    class ExtendedList<T> extends ArrayList<T> implements Lists<T> {
+
+        public ExtendedList(List<T> l) {
+            super(l);
+        }
+    }
 }
