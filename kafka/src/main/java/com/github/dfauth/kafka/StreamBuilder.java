@@ -11,9 +11,8 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.*;
@@ -39,7 +38,7 @@ public class StreamBuilder<K,V,T,R> {
     private RebalanceListener<K,V> partitionAssignmentListener = consumer -> topicPartitions -> {};
     private CommitStrategy.Factory commitStrategy = CommitStrategy.Factory.SYNC;
     private Predicate<T> keyFilter = t -> true;
-    private AbstractExecutorService executor;
+    private ExecutorService executor;
 
     public static <K,V> StreamBuilder<K,V,K,V> unmappedBuilder() {
         return new StreamBuilder<K,V,K,V>().withKeyMapper(identity()).withValueMapper(identity());
@@ -143,7 +142,7 @@ public class StreamBuilder<K,V,T,R> {
     public KafkaStream<K,V> build() {
         Consumer<ConsumerRecord<T, R>> rc = recordConsumer;
         Predicate<K> kf = k -> keyFilter.test(keyMapper.apply(k));
-        executor = Optional.ofNullable(executor).orElseGet(ForkJoinPool::commonPool);
+        executor = Optional.ofNullable(executor).orElseGet(KafkaExecutors::executor);
         return new KafkaStream<>(new HashMap<>(this.props), this.topic, this.keyDeserializer, this.valueDeserializer, r -> rc.accept(wrapConsumerRecord(r,keyMapper,valueMapper)), pollingDuration, partitionAssignmentListener, partitionRevocationListener, commitStrategy, executor, kf);
     }
 
@@ -157,7 +156,7 @@ public class StreamBuilder<K,V,T,R> {
         private final Duration duration;
         private final Consumer<ConsumerRecord<K,V>> recordConsumer;
         private final AtomicBoolean isRunning = new AtomicBoolean(false);
-        private final AbstractExecutorService executor;
+        private final ExecutorService executor;
         private final Duration timeout;
         private final RebalanceListener<K,V> partitionRevocationListener;
         private final RebalanceListener<K,V> partitionAssignmentListener;
@@ -166,11 +165,11 @@ public class StreamBuilder<K,V,T,R> {
         private CommitStrategy commitStrategy;
         private final Predicate<ConsumerRecord<K,V>> keyFilter;
 
-        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, Consumer<ConsumerRecord<K,V>> recordConsumer, Duration duration, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, CommitStrategy.Factory commitStrategy, AbstractExecutorService executor, Predicate<K> keyFilter) {
+        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, Consumer<ConsumerRecord<K,V>> recordConsumer, Duration duration, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, CommitStrategy.Factory commitStrategy, ExecutorService executor, Predicate<K> keyFilter) {
             this(props, topic, keyDeserializer, valueDeserializer, recordConsumer, duration, Duration.ofMillis(1000), partitionAssignmentListener, partitionRevocationListener, commitStrategy, executor, keyFilter);
         }
 
-        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, Consumer<ConsumerRecord<K,V>> recordConsumer, Duration duration, Duration timeout, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, CommitStrategy.Factory commitStrategy, AbstractExecutorService executor, Predicate<K> keyFilter) {
+        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, Consumer<ConsumerRecord<K,V>> recordConsumer, Duration duration, Duration timeout, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, CommitStrategy.Factory commitStrategy, ExecutorService executor, Predicate<K> keyFilter) {
             this.props = props;
             this.topic = topic;
             this.keyDeserializer = keyDeserializer;
