@@ -20,10 +20,6 @@ import static java.util.concurrent.CompletableFuture.failedFuture;
 
 public interface Assertions extends Callable<CompletableFuture<Void>> {
 
-    static <T> Optional<CompletableFuture<T>> withFutureQueue(Queue<CompletableFuture<T>> q) {
-        return Optional.ofNullable(q.poll());
-    }
-
     static Builder builder() {
         return new Builder();
     }
@@ -49,16 +45,17 @@ public interface Assertions extends Callable<CompletableFuture<Void>> {
 
         private List<CompletableFuture<Void>> outputs = new ArrayList<>();
 
-        public <T> Queue<CompletableFuture<T>> assertThat(Consumer<T>... c) {
+        @SafeVarargs
+        public final <T> OptionalQueue<CompletableFuture<T>> assertThat(Consumer<T>... c) {
             Queue<CompletableFuture<T>> q = new ArrayBlockingQueue<>(c.length);
-            IntStream.rangeClosed(0,c.length-1).mapToObj(i -> assertThat(c[i])).forEach(f -> q.offer(f));
-            return q;
+            IntStream.rangeClosed(0,c.length-1).mapToObj(i -> assertThat(c[i])).forEach(q::offer);
+            return () -> Optional.ofNullable(q.poll());
         }
 
-        public <T> Queue<CompletableFuture<T>> assertThat(Consumer<T> c, int n) {
+        public <T> OptionalQueue<CompletableFuture<T>> assertThat(Consumer<T> c, int n) {
             Queue<CompletableFuture<T>> q = new ArrayBlockingQueue<>(n);
-            IntStream.rangeClosed(0,n-1).mapToObj(ignored -> assertThat(c)).forEach(f -> q.offer(f));
-            return q;
+            IntStream.rangeClosed(0,n-1).mapToObj(ignored -> assertThat(c)).forEach(q::offer);
+            return () -> Optional.ofNullable(q.poll());
         }
 
         public <T> CompletableFuture<T> assertThat(Consumer<T> c) {
@@ -84,5 +81,9 @@ public interface Assertions extends Callable<CompletableFuture<Void>> {
                 return outputs.stream().reduce(x, (f1,f2) -> CompletableFuture.allOf(f1,f2));
             };
         }
+    }
+
+    interface OptionalQueue<T> {
+        Optional<T> poll();
     }
 }

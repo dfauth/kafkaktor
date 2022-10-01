@@ -39,16 +39,14 @@ public class EmbeddedKafka {
     }
 
     private static void terminate(EmbeddedKafkaBroker broker) {
-        tryCatchIgnore(() ->
-                broker.destroy()
-        );
+        tryCatchIgnore(broker::destroy);
     }
 
     public static class EmbeddedKafkaRunner {
 
         private final String[] topics;
         private final Map<String, String> brokerConfig;
-        private Map<String, Object> clientConfig = new HashMap();
+        private Map<String, Object> clientConfig = new HashMap<>();
         private int partitions;
 
         public EmbeddedKafkaRunner(String[] topics, Map<String, String> brokerConfig) {
@@ -62,7 +60,7 @@ public class EmbeddedKafka {
         }
 
         public EmbeddedKafkaRunner withGroupId(String groupId) {
-            Map<String, Object> tmp = new HashMap(clientConfig);
+            Map<String, Object> tmp = new HashMap<>(clientConfig);
             tmp.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
             this.clientConfig = tmp;
             return this;
@@ -84,7 +82,7 @@ public class EmbeddedKafka {
             EmbeddedKafkaBroker broker = new EmbeddedKafkaBroker(1, true, partitions, topics);
             broker.brokerProperties(brokerConfig);
             broker.afterPropertiesSet();
-            Map<String, Object> p = new HashMap(this.clientConfig);
+            Map<String, Object> p = new HashMap<>(this.clientConfig);
             p.putAll(ImmutableMap.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBrokersAsString()));
             try {
                 return f.apply(p);
@@ -96,7 +94,7 @@ public class EmbeddedKafka {
         public <T> CompletableFuture<T> runTestFuture(Function<Map<String, Object>, CompletableFuture<T>> f) {
             EmbeddedKafkaBroker broker = new EmbeddedKafkaBroker(1, true, partitions, topics);
             broker.afterPropertiesSet();
-            Map<String, Object> p = new HashMap(this.clientConfig);
+            Map<String, Object> p = new HashMap<>(this.clientConfig);
             p.putAll(ImmutableMap.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBrokersAsString()));
             CompletableFuture<T> _f = f.apply(p);
             return _f.handle((r,e) -> {
@@ -108,7 +106,7 @@ public class EmbeddedKafka {
         public <T> CompletableFuture<T> runAsyncTest(CompletableFutureAware<T,Map<String, Object>> aware) {
             EmbeddedKafkaBroker broker = new EmbeddedKafkaBroker(1, true, partitions, topics);
             broker.afterPropertiesSet();
-            Map<String, Object> p = new HashMap(this.clientConfig);
+            Map<String, Object> p = new HashMap<>(this.clientConfig);
             p.putAll(ImmutableMap.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBrokersAsString()));
             return runProvidingFuture(aware).apply(p).handle((r,e) -> {
                 terminate(broker);
@@ -119,7 +117,7 @@ public class EmbeddedKafka {
         public AsynchronousAssertions runWithAssertions(AsynchronousAssertionsAware<Map<String, Object>> aware) {
             EmbeddedKafkaBroker broker = new EmbeddedKafkaBroker(1, true, partitions, topics);
             broker.afterPropertiesSet();
-            Map<String, Object> p = new HashMap(this.clientConfig);
+            Map<String, Object> p = new HashMap<>(this.clientConfig);
             p.putAll(ImmutableMap.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBrokersAsString()));
             AsynchronousAssertions assertions = runProvidingAsynchronousAssertions(aware).apply(p);
             assertions.future().handle((r,e) -> {

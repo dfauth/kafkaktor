@@ -8,11 +8,9 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.junit.Test;
 
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import static com.github.dfauth.kafka.assertion.Assertions.withFutureQueue;
 import static com.github.dfauth.kafka.utils.PrimitiveHeader.toConsumerRecordConsumer;
 import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
@@ -40,12 +38,12 @@ public class YieldTest {
                 .withPartitions(PARTITIONS)
                 .runAsyncTest(f -> config -> {
                     Assertions.Builder assertions = Assertions.builder();
-                    Queue<CompletableFuture<String>> f0 = assertions.assertThat(k -> assertEquals(K1, k), k -> assertEquals(K2, k),k -> assertEquals(K3, k));
-                    Queue<CompletableFuture<Map<String, Object>>> f1 = assertions.assertThat(h1 -> assertEquals(H1, h1),h2 -> assertEquals(H2, h2),h3 -> assertEquals(H3, h3));
-                    Queue<CompletableFuture<String>> f2 = assertions.assertThat(v -> assertEquals(V1, v), v -> assertEquals(V2, v),v -> assertEquals(V3, v));
-                    Queue<CompletableFuture<String>> f4 = assertions.assertThat(k -> assertEquals(K1, k), k -> assertEquals(K2, k),k -> assertEquals(K3, k));
-                    Queue<CompletableFuture<Map<String, Object>>> f5 = assertions.assertThat(h1 -> assertEquals(H1, h1),h2 -> assertEquals(H2, h2),h3 -> assertEquals(H3, h3));
-                    Queue<CompletableFuture<String>> f6 = assertions.assertThat(v -> assertEquals(V1, v), v -> assertEquals(V2, v),v -> assertEquals(V3, v));
+                    Assertions.OptionalQueue<CompletableFuture<String>> f0 = assertions.assertThat(k -> assertEquals(K1, k), k -> assertEquals(K2, k), k -> assertEquals(K3, k));
+                    Assertions.OptionalQueue<CompletableFuture<Map<String, Object>>> f1 = assertions.assertThat(h1 -> assertEquals(H1, h1),h2 -> assertEquals(H2, h2),h3 -> assertEquals(H3, h3));
+                    Assertions.OptionalQueue<CompletableFuture<String>> f2 = assertions.assertThat(v -> assertEquals(V1, v), v -> assertEquals(V2, v),v -> assertEquals(V3, v));
+                    Assertions.OptionalQueue<CompletableFuture<String>> f4 = assertions.assertThat(k -> assertEquals(K1, k), k -> assertEquals(K2, k),k -> assertEquals(K3, k));
+                    Assertions.OptionalQueue<CompletableFuture<Map<String, Object>>> f5 = assertions.assertThat(h1 -> assertEquals(H1, h1),h2 -> assertEquals(H2, h2),h3 -> assertEquals(H3, h3));
+                    Assertions.OptionalQueue<CompletableFuture<String>> f6 = assertions.assertThat(v -> assertEquals(V1, v), v -> assertEquals(V2, v),v -> assertEquals(V3, v));
                     assertions.build(f);
 
                     StreamBuilder<String, String, String, String> builder = StreamBuilder.<String>stringKeyUnmappedValueBuilder()
@@ -53,18 +51,18 @@ public class YieldTest {
                             .withProperties(config, ConsumerConfig.GROUP_ID_CONFIG, "blah1")
                             .withTopic(TOPIC)
                             .withRecordConsumer(toConsumerRecordConsumer((k, e) -> {
-                                    withFutureQueue(f0).ifPresent(_f -> _f.complete(k));
-                                    withFutureQueue(f1).ifPresent(_f -> _f.complete(e.messageContext().metadata()));
-                                    withFutureQueue(f2).ifPresent(_f -> _f.complete(e.payload()));
+                                    f0.poll().ifPresent(_f -> _f.complete(k));
+                                    f1.poll().ifPresent(_f -> _f.complete(e.messageContext().metadata()));
+                                    f2.poll().ifPresent(_f -> _f.complete(e.payload()));
                                 }))
                             .onPartitionAssignment(RebalanceListener.seekToBeginning());
                     builder.build().start();
 
                     builder.withProperties(config, ConsumerConfig.GROUP_ID_CONFIG, "blah2")
                             .withRecordConsumer(toConsumerRecordConsumer((k,e) -> {
-                                withFutureQueue(f4).ifPresent(_f -> _f.complete(k));
-                                withFutureQueue(f5).ifPresent(_f -> _f.complete(e.messageContext().metadata()));
-                                withFutureQueue(f6).ifPresent(_f -> _f.complete(e.payload()));
+                                f4.poll().ifPresent(_f -> _f.complete(k));
+                                f5.poll().ifPresent(_f -> _f.complete(e.messageContext().metadata()));
+                                f6.poll().ifPresent(_f -> _f.complete(e.payload()));
                             }))
                             .onPartitionAssignment(RebalanceListener.seekToBeginning())
                             .build().start();

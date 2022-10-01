@@ -59,13 +59,7 @@ public class AktorTest {
 
                     });
             value.get(7000, TimeUnit.MILLISECONDS).performAssertions();
-        } catch (InterruptedException e) {
-            log.error(e.getMessage(), e);
-            throw new RuntimeException(e);
-        } catch (ExecutionException e) {
-            log.error(e.getMessage(), e);
-            throw new RuntimeException(e);
-        } catch (TimeoutException e) {
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException(e);
         }
