@@ -2,6 +2,7 @@ package com.github.dfauth.functional;
 
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.BinaryOperator;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -65,6 +66,16 @@ interface Lists<T> extends List<T> {
         return List.copyOf(tmp);
     }
 
+    static <T,R> R foldLeft(List<T> l, R r, BiFunction<R,T,R> f) {
+        return l.stream().reduce(r, f, (r1, r2) -> {
+            throw new IllegalStateException("should never happen");
+        });
+    }
+
+    static <T,R> R foldLeft(List<T> l, R r, BiFunction<R,T,R> f, BinaryOperator<R> g) {
+        return l.parallelStream().reduce(r, f, g);
+    }
+
     static <T> ExtendedList<T> extendedList(List<T> l) {
         return new ExtendedList<>(l);
     }
@@ -99,6 +110,14 @@ interface Lists<T> extends List<T> {
 
     default List<T> concat(T... ts) {
         return concat(this, ts);
+    }
+
+    default <R> R foldLeft(R r, BiFunction<R,T,R> f) {
+        return foldLeft(this, r, f);
+    }
+
+    default <R> R foldLeft(R r, BiFunction<R,T,R> f, BinaryOperator<R> g) {
+        return foldLeft(this, r, f, g);
     }
 
     class ExtendedList<T> extends ArrayList<T> implements Lists<T> {

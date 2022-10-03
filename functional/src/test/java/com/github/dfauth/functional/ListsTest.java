@@ -34,6 +34,15 @@ public class ListsTest {
         assertEquals(REF, extendedList(TOP).concat(5,6,7,8));
         assertEquals(List.of(4,3,2,1), extendedList(TOP).reverse());
         assertEquals(REF, extendedList(TOP).append(BOTTOM));
+        assertEquals(Tuple2.of(LEFT,RIGHT), extendedList(REF).partition(i -> i%2==0));
+    }
+
+    @Test
+    public void testFoldLeft() {
+        assertEquals(36, (int)extendedList(REF).foldLeft(0, Integer::sum, Integer::sum));
+        assertEquals(36, (int)extendedList(REF).foldLeft(0, Integer::sum));
+        assertEquals(36d, extendedList(REF).foldLeft(0.0d, Double::sum), 0.01d);
+        assertEquals(36d, extendedList(REF).foldLeft(0.0d, Double::sum, Double::sum), 0.01d);
     }
 
 }
