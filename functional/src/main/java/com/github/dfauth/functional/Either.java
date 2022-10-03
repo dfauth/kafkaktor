@@ -45,6 +45,10 @@ public interface Either<L,R> {
         return Optional.of(this).filter(Either::isLeft).map(Either::left).map(f);
     }
 
+    default <T> T map(Function<L,T> f, Function<R,T> g) {
+        return Optional.of(this).filter(Either::isLeft).map(Either::left).map(f).orElseGet(() -> g.apply(right()));
+    }
+
     class Left<L,R> implements Either<L,R> {
 
         private final L target;

@@ -3,6 +3,7 @@ package com.github.dfauth.functional;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static org.junit.Assert.*;
 
@@ -46,6 +47,65 @@ public class EitherTest {
             assertEquals("1", e.mapRight(String::valueOf).orElseThrow());
             assertTrue(e.mapRight(String::valueOf).isPresent());
             assertEquals("1", e.mapRight(String::valueOf).orElseThrow());
+        }
+        {
+            Either<Even, Odd> e = Thingy.create(1);
+            assertEquals("1 is Odd", e.map(l -> l.get() + " is Even", r -> r.get() + " is Odd"));
+        }
+    }
+
+    interface Thingy extends Supplier<Integer> {
+
+        static boolean isEven(int i) {
+            return i%2 == 0;
+        }
+
+        Integer get();
+
+        static Either<Even, Odd> create(int n) {
+            return isEven(n) ? Either.createLeft(even(n)) : Either.createRight(odd(n));
+        }
+
+        static Even even(int n) {
+            return new Even(n);
+        }
+
+        static Odd odd(int n) {
+            return new Odd(n);
+        }
+    }
+
+    static class Even implements Thingy {
+
+        private final int n;
+
+        Even(int n) {
+            if(!Thingy.isEven(n)) {
+                throw new IllegalArgumentException(String.format("Oops, %d is not even",n));
+            }
+            this.n = n;
+        }
+
+        @Override
+        public Integer get() {
+            return this.n;
+        }
+    }
+
+    static class Odd implements Thingy {
+
+        private final int n;
+
+        Odd(int n) {
+            if(Thingy.isEven(n)) {
+                throw new IllegalArgumentException(String.format("Oops, %d is not odd",n));
+            }
+            this.n = n;
+        }
+
+        @Override
+        public Integer get() {
+            return this.n;
         }
     }
 }
