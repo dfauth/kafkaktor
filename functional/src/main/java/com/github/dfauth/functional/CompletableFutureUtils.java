@@ -1,5 +1,6 @@
 package com.github.dfauth.functional;
 
+import com.github.dfauth.trycatch.TryCatch;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
@@ -8,6 +9,8 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static com.github.dfauth.trycatch.TryCatch.CallableBuilder.loggingOperator;
 import static com.github.dfauth.trycatch.TryCatch._Runnable.tryCatch;
@@ -32,6 +35,10 @@ public class CompletableFutureUtils {
 
     public static <T, R> BiFunction<T, Throwable, R> asHandlers(Function<T, R> mapper, Function<Throwable, R> handler) {
         return (t, e) -> Optional.ofNullable(e).map(handler).orElseGet(() -> mapper.apply(t));
+    }
+
+    public static <T> Iterable<T> completed(Iterable<CompletableFuture<T>> futures) {
+        return StreamSupport.stream(futures.spliterator(), true).filter(CompletableFuture::isDone).map(f -> TryCatch._Callable.tryCatch(f::get)).collect(Collectors.toList());
     }
 
     public static class CompletionConsumer<T> implements BiConsumer<T, Throwable> {
