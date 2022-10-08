@@ -1,10 +1,7 @@
 package com.github.dfauth.kafka;
 
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -15,20 +12,21 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.*;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static com.github.dfauth.functional.Functions.peek;
+import static com.github.dfauth.kafka.ConsumerRecordProcessor.toConsumerRecordProcessor;
 import static com.github.dfauth.kafka.utils.KafkaUtils.wrapConsumerRecord;
-import static com.github.dfauth.trycatch.TryCatch._Callable;
-import static com.github.dfauth.trycatch.TryCatch._Runnable.tryCatchIgnore;
 import static java.util.function.Function.identity;
 
 public class StreamBuilder<K,V,T,R> {
 
     private Map<String, Object> props;
     private String topic;
-    private Consumer<ConsumerRecord<T,R>> recordConsumer;
+    private ConsumerRecordProcessor<T,R> recordProcessor;
     private Deserializer<K> keyDeserializer;
     private Deserializer<V> valueDeserializer;
     private Function<K,T> keyMapper;
@@ -104,19 +102,22 @@ public class StreamBuilder<K,V,T,R> {
         return this;
     }
 
+    public StreamBuilder<K,V,T,R> withRecordProcessor(ConsumerRecordProcessor<T, R> recordProcessor) {
+        this.recordProcessor = recordProcessor;
+        return this;
+    }
+
     public StreamBuilder<K,V,T,R> withRecordConsumer(Consumer<ConsumerRecord<T,R>> recordConsumer) {
-        this.recordConsumer = recordConsumer;
+        this.recordProcessor = toConsumerRecordProcessor(recordConsumer);
         return this;
     }
 
     public StreamBuilder<K,V,T,R> withKeyValueConsumer(BiConsumer<T,R> keyValueConsumer) {
-        this.recordConsumer = r -> keyValueConsumer.accept(r.key(), r.value());
-        return this;
+        return withRecordConsumer(r -> keyValueConsumer.accept(r.key(), r.value()));
     }
 
     public StreamBuilder<K,V,T,R> withValueConsumer(Consumer<R> valueConsumer) {
-        this.recordConsumer = r -> valueConsumer.accept(r.value());
-        return this;
+        return withKeyValueConsumer((ignored, v) -> valueConsumer.accept(v));
     }
 
     public StreamBuilder<K,V,T,R> withPollingDuration(Duration duration) {
@@ -140,10 +141,10 @@ public class StreamBuilder<K,V,T,R> {
     }
 
     public KafkaStream<K,V> build() {
-        Consumer<ConsumerRecord<T, R>> rc = recordConsumer;
+        ConsumerRecordProcessor<T, R> rp = recordProcessor;
         Predicate<K> kf = k -> keyFilter.test(keyMapper.apply(k));
         executor = Optional.ofNullable(executor).orElseGet(KafkaExecutors::executor);
-        return new KafkaStream<>(new HashMap<>(this.props), this.topic, this.keyDeserializer, this.valueDeserializer, r -> rc.accept(wrapConsumerRecord(r,keyMapper,valueMapper)), pollingDuration, partitionAssignmentListener, partitionRevocationListener, commitStrategy, executor, kf);
+        return new KafkaStream<>(new HashMap<>(this.props), this.topic, this.keyDeserializer, this.valueDeserializer, r -> rp.apply(wrapConsumerRecord(r,keyMapper,valueMapper)), pollingDuration, partitionAssignmentListener, partitionRevocationListener, commitStrategy, executor, kf);
     }
 
     @Slf4j
@@ -154,7 +155,7 @@ public class StreamBuilder<K,V,T,R> {
         private final Deserializer<K> keyDeserializer;
         private final Deserializer<V> valueDeserializer;
         private final Duration duration;
-        private final Consumer<ConsumerRecord<K,V>> recordConsumer;
+        private final ConsumerRecordProcessor<K, V> recordProcessor;
         private final AtomicBoolean isRunning = new AtomicBoolean(false);
         private final ExecutorService executor;
         private final Duration timeout;
@@ -165,17 +166,17 @@ public class StreamBuilder<K,V,T,R> {
         private CommitStrategy commitStrategy;
         private final Predicate<ConsumerRecord<K,V>> keyFilter;
 
-        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, Consumer<ConsumerRecord<K,V>> recordConsumer, Duration duration, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, CommitStrategy.Factory commitStrategy, ExecutorService executor, Predicate<K> keyFilter) {
-            this(props, topic, keyDeserializer, valueDeserializer, recordConsumer, duration, Duration.ofMillis(1000), partitionAssignmentListener, partitionRevocationListener, commitStrategy, executor, keyFilter);
+        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, ConsumerRecordProcessor<K, V> recordProcessor, Duration duration, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, CommitStrategy.Factory commitStrategy, ExecutorService executor, Predicate<K> keyFilter) {
+            this(props, topic, keyDeserializer, valueDeserializer, recordProcessor, duration, Duration.ofMillis(1000), partitionAssignmentListener, partitionRevocationListener, commitStrategy, executor, keyFilter);
         }
 
-        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, Consumer<ConsumerRecord<K,V>> recordConsumer, Duration duration, Duration timeout, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, CommitStrategy.Factory commitStrategy, ExecutorService executor, Predicate<K> keyFilter) {
+        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, ConsumerRecordProcessor<K, V> recordProcessor, Duration duration, Duration timeout, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, CommitStrategy.Factory commitStrategy, ExecutorService executor, Predicate<K> keyFilter) {
             this.props = props;
             this.topic = topic;
             this.keyDeserializer = keyDeserializer;
             this.valueDeserializer = valueDeserializer;
             this.duration = duration;
-            this.recordConsumer = recordConsumer;
+            this.recordProcessor = recordProcessor;
             this.timeout = timeout;
             this.partitionAssignmentListener = partitionAssignmentListener;
             this.partitionRevocationListener = partitionRevocationListener;
@@ -213,17 +214,13 @@ public class StreamBuilder<K,V,T,R> {
         }
 
         public void run() {
-            long processed;
+            List<Map.Entry<TopicPartition,CompletableFuture<OffsetAndMetadata>>> processed;
             do {
-                processed = _Callable.tryCatchIgnore(() ->
-                        StreamSupport.stream(consumer.poll(duration).records(topic).spliterator(), false)
-                                .filter(keyFilter)
-                                .map(peek(r ->
-                                        tryCatchIgnore(() -> recordConsumer.accept(r))
-                                )).count(), -1L);
-                if(processed > 0) {
-                    commitStrategy.tryCommit();
-                }
+                processed = StreamSupport.stream(consumer.poll(duration).spliterator(), false)
+                        .filter(keyFilter)
+                        .map(recordProcessor)
+                        .collect(Collectors.toList());
+                commitStrategy.commit(processed);
             } while(!this.yield(processed) && isRunning.get());
             if(!isRunning.get()) {
                 consumer.close(timeout);
@@ -232,8 +229,8 @@ public class StreamBuilder<K,V,T,R> {
             }
         }
 
-        protected boolean yield(long processed) {
-            return processed == 0;
+        protected boolean yield(List<Map.Entry<TopicPartition,CompletableFuture<OffsetAndMetadata>>> processed) {
+            return processed.stream().map(Map.Entry::getValue).anyMatch(CompletableFuture::isDone);
         }
 
         public void stop() {

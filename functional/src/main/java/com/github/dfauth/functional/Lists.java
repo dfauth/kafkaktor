@@ -4,11 +4,12 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Predicate;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 
-interface Lists<T> extends List<T> {
+public interface Lists<T> extends List<T> {
 
     static <T> Optional<T> headOption(List<T> l) {
         return Optional.ofNullable(l.size() > 0 ? l.get(0) : null);
@@ -22,8 +23,13 @@ interface Lists<T> extends List<T> {
         return l.size() > 1 ? List.copyOf(l.subList(1,l.size())) : emptyList();
     }
 
-    static <T> Tuple2<T,List<T>> segment(List<T> l) {
-        return Tuple2.of(head(l), tail(l));
+    static <T> Tuple2<List<T>,List<T>> segment(List<T> l) {
+        return segment(l, t -> t == head(l));
+    }
+
+    static <T> Tuple2<List<T>,List<T>> segment(List<T> l, Predicate<T> p) {
+        int n = IntStream.range(0 ,l.size()).filter(i -> p.negate().test(l.get(i))).findFirst().orElse(0);
+        return Tuple2.of(l.subList(0, n), l.subList(n, l.size()));
     }
 
     static <T> Tuple2<List<T>,List<T>> partition(List<T> l, Predicate<T> p) {
@@ -76,6 +82,10 @@ interface Lists<T> extends List<T> {
         return l.parallelStream().reduce(r, f, g);
     }
 
+    static <T> ExtendedList<T> extendedList() {
+        return extendedList(new ArrayList<>());
+    }
+
     static <T> ExtendedList<T> extendedList(List<T> l) {
         return new ExtendedList<>(l);
     }
@@ -96,12 +106,16 @@ interface Lists<T> extends List<T> {
         return Lists.partition(this, p);
     }
 
-    default Tuple2<T,List<T>> segment() {
+    default Tuple2<List<T>,List<T>> segment() {
         return Lists.segment(this);
     }
 
-    default List<T> reverse() {
-        return reverse(this);
+    default Tuple2<List<T>,List<T>> segment(Predicate<T> p) {
+        return Lists.segment(this, p);
+    }
+
+    default ExtendedList<T> reverse() {
+        return extendedList(reverse(this));
     }
 
     default List<T> append(List<T> l) {

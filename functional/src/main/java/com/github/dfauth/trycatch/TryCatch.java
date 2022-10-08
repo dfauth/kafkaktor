@@ -67,6 +67,10 @@ public abstract class TryCatch {
             return Builder.tryCatch(c).handleWith(f).andFinallyRun(r);
         }
 
+        public static <T> T tryCatchIgnore(Callable<T> c, Function<Throwable, T> f, Runnable r) {
+            return tryCatch(c, loggingOperator.andThen(f), r);
+        }
+
         public static <T> T tryCatchIgnore(Callable<T> c, T t) {
             return tryCatch(c, loggingOperator.andThen(CallableBuilder.defaultValueOf(t)), Builder.noOpRunnable);
         }

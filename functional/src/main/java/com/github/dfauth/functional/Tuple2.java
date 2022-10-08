@@ -32,6 +32,18 @@ public interface Tuple2<T1, T2> {
         return e -> f.apply(e.getKey(), e.getValue());
     }
 
+    static <K, V, T> BiFunction<K,V,Tuple2<K, T>> of(BiFunction<K,V,T> f) {
+        return (k,v) -> of(k, f.apply(k,v));
+    }
+
+    static <K, V> Tuple2<K, V> of(Map.Entry<K,V> e) {
+        return of(e.getKey(), e.getValue());
+    }
+
+    static <T1,T2> Function<T2,Tuple2<T1, T2>> of(T1 t1) {
+        return t2 -> Tuple2.of(t1,t2);
+    }
+
     static <T1,T2> Tuple2<T1, T2> of(T1 t1, T2 t2) {
         return new Tuple2<>() {
             @Override

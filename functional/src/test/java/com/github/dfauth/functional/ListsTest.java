@@ -30,7 +30,7 @@ public class ListsTest {
         assertEquals(1, (int)extendedList(REF).head());
         assertEquals(Optional.of(1), extendedList(REF).headOption());
         assertEquals(List.of(2,3,4,5,6,7,8), extendedList(REF).tail());
-        assertEquals(Tuple2.of(1, List.of(2,3,4,5,6,7,8)), extendedList(REF).segment());
+        assertEquals(Tuple2.of(List.of(1), List.of(2,3,4,5,6,7,8)), extendedList(REF).segment());
         assertEquals(REF, extendedList(TOP).concat(5,6,7,8));
         assertEquals(List.of(4,3,2,1), extendedList(TOP).reverse());
         assertEquals(REF, extendedList(TOP).append(BOTTOM));
@@ -43,6 +43,12 @@ public class ListsTest {
         assertEquals(36, (int)extendedList(REF).foldLeft(0, Integer::sum));
         assertEquals(36d, extendedList(REF).foldLeft(0.0d, Double::sum), 0.01d);
         assertEquals(36d, extendedList(REF).foldLeft(0.0d, Double::sum, Double::sum), 0.01d);
+    }
+
+    @Test
+    public void testSegment() {
+        assertEquals(Tuple2.of(List.of(1), List.of(2,3,4,5,6,7,8)), extendedList(REF).segment());
+        assertEquals(Tuple2.of(List.of(1,2,3,4), List.of(5,6,7,8)), extendedList(REF).segment(i -> i <= 4));
     }
 
 }
