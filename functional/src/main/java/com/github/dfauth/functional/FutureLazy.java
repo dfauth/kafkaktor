@@ -5,7 +5,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static com.github.dfauth.trycatch.ExceptionalSupplier.asSupplier;
 import static com.github.dfauth.trycatch.TryCatch._Callable.tryCatch;
 import static java.util.Objects.requireNonNull;
 
@@ -33,9 +32,9 @@ public class FutureLazy<T> implements Lazy<T> {
         return Optional.ofNullable(fut)
                 .filter(CompletableFuture::isDone)
                 .map(_f -> tryCatch(_f::get))
-                .orElseGet(asSupplier(() -> {
+                .orElseGet(() -> {
                     fut.complete(supplier.get());
-                    return fut.get();
-                }));
+                    return tryCatch(fut::get);
+                });
     }
 }
