@@ -13,9 +13,12 @@ import java.util.function.Function;
 public interface ConsumerRecordProcessor<T, R> extends Function<ConsumerRecord<T, R>, Map.Entry<TopicPartition,CompletableFuture<OffsetAndMetadata>>> {
 
     static <T, R> ConsumerRecordProcessor<T, R> toConsumerRecordProcessor(Consumer<ConsumerRecord<T, R>> recordConsumer) {
+
+        CompletableFuture<OffsetAndMetadata> DUMMY = CompletableFuture.completedFuture(new OffsetAndMetadata(0L));
+
         return r -> {
             recordConsumer.accept(r);
-            return Tuple2.of(new TopicPartition(r.topic(), r.partition()), CompletableFuture.completedFuture(new OffsetAndMetadata(r.offset()))).toMapEntry();
+            return Tuple2.of(new TopicPartition(r.topic(), r.partition()), DUMMY).toMapEntry();
         };
     }
 }
