@@ -9,7 +9,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public interface Maps<K,V> {
+public interface Maps {
 
     static <K,V,T> Function<Map<K,V>,Map<K,T>> mapTransformerOf(BiFunction<K,V,T> f) {
         return mapTransformerOf(e -> Tuple2.of(e.getKey(), f.apply(e.getKey(), e.getValue())).toMapEntry());
@@ -46,20 +46,20 @@ public interface Maps<K,V> {
         );
     }
 
-    static <K,V,T> Map<K,V> merge(Map<K,V> m1, Map<K,V> m2) {
+    static <K,V> Map<K,V> merge(Map<K,V> m1, Map<K,V> m2) {
         return merge(m1,m2,(v1,v2) -> v2);
     }
 
-    static <K,V,T> Map<K,V> merge(Map<K,V> m1, Map<K,V> m2, BinaryOperator<V> f) {
+    static <K,V> Map<K,V> merge(Map<K,V> m1, Map<K,V> m2, BinaryOperator<V> f) {
         return Stream.concat(m1.entrySet().stream(), m2.entrySet().stream())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, f, HashMap::new));
     }
 
-    static <K,V,T> Map<K,V> mergeEntry(Map<K,V> m, K k, V v) {
+    static <K,V> Map<K,V> mergeEntry(Map<K,V> m, K k, V v) {
         return merge(m, Collections.singletonMap(k,v),(v1,v2)->v2);
     }
 
-    static <K,V,T> Map<K,V> mergeEntry(Map<K,V> m, K k, V v, BinaryOperator<V> f) {
+    static <K,V> Map<K,V> mergeEntry(Map<K,V> m, K k, V v, BinaryOperator<V> f) {
         return merge(m, Collections.singletonMap(k,v),f);
     }
 
@@ -71,7 +71,7 @@ public interface Maps<K,V> {
         return new ExtendedMap<>(m);
     }
 
-    class ExtendedMap<K,V> extends HashMap<K,V> implements Maps<K, V> {
+    class ExtendedMap<K,V> extends HashMap<K,V> implements Maps {
         public ExtendedMap(Map<K, V> m) {
             super(m);
         }
