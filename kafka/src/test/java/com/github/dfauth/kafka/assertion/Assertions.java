@@ -43,7 +43,7 @@ public interface Assertions extends Callable<CompletableFuture<Void>> {
     @Slf4j
     class Builder {
 
-        private List<CompletableFuture<Void>> outputs = new ArrayList<>();
+        private final List<CompletableFuture<Void>> outputs = new ArrayList<>();
 
         @SafeVarargs
         public final <T> OptionalQueue<CompletableFuture<T>> assertThat(Consumer<T>... c) {
@@ -60,14 +60,14 @@ public interface Assertions extends Callable<CompletableFuture<Void>> {
 
         public <T> CompletableFuture<T> assertThat(Consumer<T> c) {
             CompletableFuture<T> _f = new CompletableFuture<>();
-            outputs.add(_f.thenApply(t -> Unit.<T,Void>toFunction(c).apply(t)));
+            outputs.add(_f.thenApply(t -> Unit.toFunction(c).apply(t)));
             return _f;
         }
 
         public void build(CompletableFuture<Assertions> f) {
 
             CompletableFuture.allOf(
-                    outputs.toArray(new CompletableFuture[outputs.size()])
+                    outputs.toArray(new CompletableFuture[0])
             ).whenComplete(
                     onSuccess(ignored -> f.complete(complete(completedFuture(null))))
                             .onFailure(t -> f.complete(complete(failedFuture(t))))
@@ -78,7 +78,7 @@ public interface Assertions extends Callable<CompletableFuture<Void>> {
             return () -> {
                 // assertions are reduced to a boolean value -> only if all succeed can true is returned
                 // block waiting for all futures to complete
-                return outputs.stream().reduce(x, (f1,f2) -> CompletableFuture.allOf(f1,f2));
+                return outputs.stream().reduce(x, CompletableFuture::allOf);
             };
         }
     }

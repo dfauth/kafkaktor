@@ -1,7 +1,5 @@
 package com.github.dfauth.trycatch;
 
-import com.github.dfauth.functional.Unit;
-
 import java.util.TimerTask;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -13,10 +11,10 @@ import static com.github.dfauth.trycatch.TryCatch._Callable.tryCatch;
 
 public class AsyncUtil {
 
-    public static CompletableFuture<Unit> executeAsync(ExceptionalRunnable runnable) {
+    public static CompletableFuture<Void> executeAsync(ExceptionalRunnable runnable) {
         return executeAsync(() -> {
             tryCatch(runnable, t -> UNIT);
-            return null;
+            return UNIT;
         });
     }
 

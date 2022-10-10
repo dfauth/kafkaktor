@@ -9,7 +9,7 @@ import static com.github.dfauth.trycatch.TryCatch._Runnable.tryCatch;
 public interface ExceptionalConsumer<T> extends java.util.function.Consumer<T>, CallableFunction<T, Void> {
 
     static <T, R> Consumer<T> toConsumer(CallableFunction<T, R> f) {
-        return Unit.Function.of(f);
+        return Unit.Function0.of(f);
     }
 
     default void accept(T t) {
