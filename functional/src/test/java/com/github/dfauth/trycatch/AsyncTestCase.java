@@ -1,7 +1,6 @@
 package com.github.dfauth.trycatch;
 
 import com.github.dfauth.functional.Try;
-import com.github.dfauth.functional.Unit;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -57,16 +56,14 @@ public class AsyncTestCase {
     public void testRunnable() throws InterruptedException, ExecutionException, TimeoutException {
 
         {
-            CompletableFuture<Unit> f = executeAsync(() -> {});
-            Unit result = f.get(1, TimeUnit.SECONDS);
+            CompletableFuture<Void> f = executeAsync(() -> {});
+            Void result = f.get(1, TimeUnit.SECONDS);
             assertNothingLogged();
         }
 
         {
             AtomicReference<Optional<Integer>> blah = new AtomicReference<>();
-            CompletableFuture<Void> f = executeAsync(() -> {
-                blah.set(Optional.of(1));
-            }).thenAccept(withExceptionLogging(_unit -> blah.get().ifPresent(b -> blah.set(Optional.of(2/b)))));
+            CompletableFuture<Void> f = executeAsync(() -> blah.set(Optional.of(1))).thenAccept(withExceptionLogging(_unit -> blah.get().ifPresent(b -> blah.set(Optional.of(2/b)))));
             sleep(100);
             assertEquals(2, blah.get().get().intValue());
             assertNothingLogged();
@@ -74,9 +71,7 @@ public class AsyncTestCase {
 
         {
             AtomicReference<Optional<Integer>> blah = new AtomicReference<>();
-            CompletableFuture<Void> f = executeAsync(() -> {
-                blah.set(Optional.of(0));
-            }).thenAccept(withExceptionLogging(_unit -> blah.get().ifPresent(b -> blah.set(Optional.of(2/b)))));
+            CompletableFuture<Void> f = executeAsync(() -> blah.set(Optional.of(0))).thenAccept(withExceptionLogging(_unit -> blah.get().ifPresent(b -> blah.set(Optional.of(2/b)))));
             assertThrows(ExecutionException.class, () -> f.get(1, TimeUnit.SECONDS));
             assertExceptionLogged(new ArithmeticException("/ by zero"));
         }

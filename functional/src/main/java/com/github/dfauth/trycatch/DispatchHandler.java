@@ -12,18 +12,18 @@ public interface DispatchHandler<T, R> {
 
     R dispatch(Success<T> s);
 
-    interface Consumer<T> extends DispatchHandler<T, Unit>, java.util.function.Consumer<T> {
+    interface Consumer<T> extends DispatchHandler<T, Void>, java.util.function.Consumer<T> {
 
         static <T> Consumer<T> toDispatcher(java.util.function.Consumer<T> consumer) {
             return consumer::accept;
         }
 
-        default Unit dispatch(Failure<T> f) {
+        default Void dispatch(Failure<T> f) {
             loggingOperator.apply(f.exception());
             return Unit.UNIT;
         }
 
-        default Unit dispatch(Success<T> s) {
+        default Void dispatch(Success<T> s) {
             accept(s.result());
             return Unit.UNIT;
         }

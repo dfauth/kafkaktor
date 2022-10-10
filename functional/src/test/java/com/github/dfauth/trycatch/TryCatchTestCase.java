@@ -1,11 +1,9 @@
 package com.github.dfauth.trycatch;
 
 import com.github.dfauth.functional.Try;
-import com.github.dfauth.functional.Unit;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -20,9 +18,9 @@ import static com.github.dfauth.trycatch.TryCatch._Runnable;
 import static com.github.dfauth.trycatch.TryCatch._Runnable.withExceptionLogging;
 import static org.junit.Assert.*;
 
+@Slf4j
 public class TryCatchTestCase {
 
-    private static final Logger logger = LoggerFactory.getLogger(TryCatchTestCase.class);
     private static final RuntimeException runtimeOops = new RuntimeException("Oops");
     private static final Exception oops = new Exception("Oops");
 
@@ -116,7 +114,7 @@ public class TryCatchTestCase {
             f.get(1, TimeUnit.SECONDS);
             fail("Oops. expected ExecutionException");
         } catch (InterruptedException | TimeoutException e) {
-            logger.error(e.getMessage(), e);
+            log.error(e.getMessage(), e);
             throw new RuntimeException(e);
         } catch (ExecutionException e) {
             // expected
@@ -187,7 +185,7 @@ public class TryCatchTestCase {
         }
 
         {
-            Try<Unit> t = tryWith(() -> {
+            Try<Void> t = tryWith(() -> {
                 throw runtimeOops;
             });
             assertNotNull(t);
@@ -252,18 +250,18 @@ public class TryCatchTestCase {
     public void testRecover() {
         {
             Try<Integer> t = Try.success(1);
-            t.map(peek(r -> logger.info("map: "+r)))
+            t.map(peek(r -> log.info("map: "+r)))
                     .recover(_t -> {
-                        logger.error("recover: "+_t.getMessage(), t);
+                        log.error("recover: "+_t.getMessage(), t);
                         return null;
                     });
             assertInfoLogged(msg -> msg.startsWith("map: "));
         }
         {
             Try<Integer> t = Try.tryWithCallable(this::throwRuntimeOops);
-            assertEquals(1, (int)t.map(peek(r -> logger.info("map: "+r)))
+            assertEquals(1, (int)t.map(peek(r -> log.info("map: "+r)))
                     .recover(_t -> {
-                        logger.info("recover: "+_t.getMessage());
+                        log.info("recover: "+_t.getMessage());
                         return 1;
                     }).toOptional().get());
             assertExceptionLogged(runtimeOops);

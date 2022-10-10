@@ -22,7 +22,7 @@ public interface Try<T> {
         return tryCatch(() -> new Success<>(c.call()), Failure::new);
     }
 
-    static Try<Unit> tryWith(ExceptionalRunnable r) {
+    static Try<Void> tryWith(ExceptionalRunnable r) {
         return tryCatch(() -> {
             r.run();
             return new Success<>(Unit.UNIT);
