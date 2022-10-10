@@ -42,12 +42,13 @@ public class EmbeddedKafka {
         tryCatchIgnore(broker::destroy);
     }
 
-    public static class EmbeddedKafkaRunner {
+    public static class EmbeddedKafkaRunner implements AutoCloseable{
 
         private final String[] topics;
         private final Map<String, String> brokerConfig;
         private Map<String, Object> clientConfig = new HashMap<>();
         private int partitions;
+        private EmbeddedKafkaBroker broker;
 
         public EmbeddedKafkaRunner(String[] topics, Map<String, String> brokerConfig) {
             this(topics, brokerConfig, 1);
@@ -98,18 +99,18 @@ public class EmbeddedKafka {
             p.putAll(ImmutableMap.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBrokersAsString()));
             CompletableFuture<T> _f = f.apply(p);
             return _f.handle((r,e) -> {
-                terminate(broker);
+//                terminate(broker);
                 return r;
             });
         }
 
         public <T> CompletableFuture<T> runAsyncTest(CompletableFutureAware<T,Map<String, Object>> aware) {
-            EmbeddedKafkaBroker broker = new EmbeddedKafkaBroker(1, true, partitions, topics);
+            broker = new EmbeddedKafkaBroker(1, true, partitions, topics);
             broker.afterPropertiesSet();
             Map<String, Object> p = new HashMap<>(this.clientConfig);
             p.putAll(ImmutableMap.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBrokersAsString()));
             return runProvidingFuture(aware).apply(p).handle((r,e) -> {
-                terminate(broker);
+//                terminate(broker);
                 return r;
             });
         }
@@ -125,6 +126,11 @@ public class EmbeddedKafka {
                 return r;
             });
             return assertions;
+        }
+
+        @Override
+        public void close() {
+            terminate(broker);
         }
     }
 }
