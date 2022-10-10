@@ -35,7 +35,7 @@ public interface Maps {
 
     static <K,V,T> Map<K,T> map(Map<K, V> m, BiFunction<K,V,T> f) {
         return m.entrySet().stream().map(
-                e -> Tuple2.of(e).map(f.andThen(Tuple2.of(e.getKey()))).toMapEntry()
+                e -> Tuple2.tuple2(e).map(f.andThen(Tuple2.of(e.getKey()))).toMapEntry()
         ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 

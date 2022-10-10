@@ -6,6 +6,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static com.github.dfauth.functional.Function2.uncurry;
+import static java.util.function.Function.identity;
 
 public interface Tuple2<T1, T2> {
 
@@ -36,7 +37,7 @@ public interface Tuple2<T1, T2> {
         return (k,v) -> of(k, f.apply(k,v));
     }
 
-    static <K, V> Tuple2<K, V> of(Map.Entry<K,V> e) {
+    static <K, V> Tuple2<K, V> tuple2(Map.Entry<K,V> e) {
         return of(e.getKey(), e.getValue());
     }
 
@@ -92,6 +93,18 @@ public interface Tuple2<T1, T2> {
 
     default <T> T map(BiFunction<T1,T2,T> f) {
         return f.apply(_1(), _2());
+    }
+
+    default <R1,R2> Tuple2<R1,R2> map(Function<T1,R1> f1, Function<T2,R2> f2) {
+        return Tuple2.of(f1.apply(_1()),f2.apply(_2()));
+    }
+
+    default <R1> Tuple2<R1,T2> mapLeft(Function<T1,R1> f) {
+        return map(f,identity());
+    }
+
+    default <R2> Tuple2<T1,R2> mapRight(Function<T2,R2> f) {
+        return map(identity(),f);
     }
 
     default <T> T map(Function<T1,Function<T2,T>> f) {

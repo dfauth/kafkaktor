@@ -4,69 +4,83 @@ import com.github.dfauth.functional.Maps;
 import com.github.dfauth.functional.Reducer;
 import com.github.dfauth.functional.Tuple2;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
+import static com.github.dfauth.functional.Collectors.mapEntryCollector;
 import static com.github.dfauth.functional.Lists.extendedList;
 import static com.github.dfauth.functional.Lists.segment;
 import static com.github.dfauth.functional.Maps.extendedMap;
+import static com.github.dfauth.functional.Tuple2.of;
+import static com.github.dfauth.functional.Tuple2.tuple2;
+import static com.github.dfauth.trycatch.TryCatch._Callable.tryCatch;
+import static java.util.function.Predicate.not;
 
-abstract class CommitStrategy {
+interface OffsetCommitStrategy {
 
-    protected KafkaConsumer<?, ?> consumer;
+    void commit(Map<TopicPartition, OffsetAndMetadata> m);
 
-    public CommitStrategy(KafkaConsumer<?, ?> consumer) {
-        this.consumer = consumer;
+    default void commit(List<Map.Entry<TopicPartition, CompletableFuture<OffsetAndMetadata>>> records) {
+        Optional.of(records.stream()
+                    .filter(e -> e.getValue().isDone())
+                    .map(e -> tuple2(e).mapRight(f -> tryCatch(f::get)))
+                    .map(Tuple2::toMapEntry)
+                    .collect(mapEntryCollector()))
+                .filter(not(Map::isEmpty))
+                .ifPresent(this::commit);
     }
 
-    public final void commit(String topic, int partition, long offset) {
-        commit(new TopicPartition(topic, partition), new OffsetAndMetadata(offset));
-    }
+    interface Factory<K,V> extends KafkaConsumerAware<OffsetCommitStrategy,K,V> {
 
-    public final void commit(ConsumerRecord<?,?> record) {
-        commit(record.topic(), record.partition(), record.offset());
-    }
-
-    public void commit(TopicPartition tp, OffsetAndMetadata om) {
-        commit(Collections.singletonMap(tp, om));
-    }
-
-    public abstract void commit(Map<TopicPartition, OffsetAndMetadata> m);
-
-    public abstract void commit(List<Map.Entry<TopicPartition, CompletableFuture<OffsetAndMetadata>>> records);
-
-    enum Factory {
-        SYNC(c -> new SyncCommitStrategy(c)),
-        ASYNC(c -> new AsyncCommitStrategy(c)),
-        EXTERNAL_SYNC(c -> new ExternalSyncCommitStrategy(c)),
-        EXTERNAL_ASYNC(c -> new ExternalAsyncCommitStrategy(c));
-
-        private final Function<KafkaConsumer<?, ?>, CommitStrategy> f;
-
-        Factory(Function<KafkaConsumer<?, ?>, CommitStrategy> f) {
-            this.f = f;
+        static <K,V> Factory<K,V> sync() {
+            return SyncOffsetCommitStrategy::new;
+        }
+        static <K,V> Factory<K,V> async() {
+            return AsyncOffsetCommitStrategy::new;
+        }
+        static <K,V> Factory<K,V> externalSync() {
+            return ExternalSyncOffsetCommitStrategy::new;
+        }
+        static <K,V> Factory<K,V> externalAsync() {
+            return ExternalAsyncOffsetCommitStrategy::new;
         }
 
-        public CommitStrategy create(KafkaConsumer<?,?> consumer) {
-            return f.apply(consumer);
+        default KafkaConsumerAware<OffsetCommitStrategy,K,V> compose(Factory<K,V> next) {
+            return next.andThen(this);
+        }
+
+        default KafkaConsumerAware<OffsetCommitStrategy,K,V> andThen(KafkaConsumerAware<OffsetCommitStrategy,K,V> next) {
+            return c -> {
+                OffsetCommitStrategy tmp = withKafkaConsumer(c);
+                OffsetCommitStrategy tmp1 = next.withKafkaConsumer(c);
+                    return m -> {
+                        tmp.commit(m);
+                        tmp1.commit(m);
+                    };
+            };
         }
     }
 
-    private static class SyncCommitStrategy extends CommitStrategy {
+    class SyncOffsetCommitStrategy<K,V> implements OffsetCommitStrategy {
 
-        public SyncCommitStrategy(KafkaConsumer<?, ?> consumer) {
-            super(consumer);
+        private final KafkaConsumer<K, V> consumer;
+
+        public SyncOffsetCommitStrategy(KafkaConsumer<K,V> consumer) {
+            this.consumer = consumer;
         }
 
         @Override
         public void commit(Map<TopicPartition, OffsetAndMetadata> m) {
-            consumer.commitSync();
+            if(m.size() > 0) {
+                consumer.commitSync();
+            }
         }
 
         @Override
@@ -75,10 +89,12 @@ abstract class CommitStrategy {
     }
 
     @Slf4j
-    private static class AsyncCommitStrategy extends CommitStrategy {
+    class AsyncOffsetCommitStrategy<K,V> implements OffsetCommitStrategy {
 
-        public AsyncCommitStrategy(KafkaConsumer<?, ?> consumer) {
-            super(consumer);
+        private final KafkaConsumer<K, V> consumer;
+
+        public AsyncOffsetCommitStrategy(KafkaConsumer<K,V> consumer) {
+            this.consumer = consumer;
         }
 
         @Override
@@ -91,12 +107,13 @@ abstract class CommitStrategy {
         }
     }
 
-    private static class ExternalSyncCommitStrategy extends CommitStrategy {
+    class ExternalSyncOffsetCommitStrategy<K,V> implements OffsetCommitStrategy {
 
+        private final KafkaConsumer<K, V> consumer;
         private Maps.ExtendedMap<TopicPartition, List<CompletableFuture<OffsetAndMetadata>>> pending = extendedMap(new HashMap<>());
 
-        public ExternalSyncCommitStrategy(KafkaConsumer<?, ?> consumer) {
-            super(consumer);
+        public ExternalSyncOffsetCommitStrategy(KafkaConsumer<K,V> consumer) {
+            this.consumer = consumer;
         }
 
         @Override
@@ -119,9 +136,9 @@ abstract class CommitStrategy {
             });
             // segment acks up to first incomplete ack
             Tuple2<Maps.ExtendedMap<TopicPartition,List<CompletableFuture<OffsetAndMetadata>>>, Maps.ExtendedMap<TopicPartition,List<CompletableFuture<OffsetAndMetadata>>>> m1 = pending.foldLeft(
-                    Tuple2.of(extendedMap(), extendedMap()),
+                    of(extendedMap(), extendedMap()),
                     acc -> (k,v) -> segment(v, CompletableFuture::isDone) // Tuple2 of List of futures
-                            .map((t1,t2) -> Tuple2.of(
+                            .map((t1,t2) -> of(
                                             extendedMap(acc._1()).mergeEntry(k, t1,(v1, v2) -> extendedList(v1).append(v2)),
                                             extendedMap(acc._2()).mergeEntry(k, t2,(v1, v2) -> extendedList(v1).append(v2))
                                     )
@@ -138,10 +155,12 @@ abstract class CommitStrategy {
     }
 
     @Slf4j
-    private static class ExternalAsyncCommitStrategy extends ExternalSyncCommitStrategy {
+    class ExternalAsyncOffsetCommitStrategy<K,V> implements OffsetCommitStrategy {
 
-        public ExternalAsyncCommitStrategy(KafkaConsumer<?, ?> consumer) {
-            super(consumer);
+        private final KafkaConsumer<K, V> consumer;
+
+        public ExternalAsyncOffsetCommitStrategy(KafkaConsumer<K,V> consumer) {
+            this.consumer = consumer;
         }
 
         @Override
