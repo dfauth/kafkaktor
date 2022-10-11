@@ -14,12 +14,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import static com.github.dfauth.functional.Collectors.mapEntryCollector;
+import static com.github.dfauth.functional.Collectors.tuple2Collector;
 import static com.github.dfauth.functional.Lists.extendedList;
 import static com.github.dfauth.functional.Lists.segment;
 import static com.github.dfauth.functional.Maps.extendedMap;
 import static com.github.dfauth.functional.Tuple2.of;
-import static com.github.dfauth.functional.Tuple2.tuple2;
 import static com.github.dfauth.trycatch.TryCatch._Callable.tryCatch;
 import static java.util.function.Predicate.not;
 
@@ -29,12 +28,12 @@ interface OffsetCommitStrategy {
 
     default void commit(List<Map.Entry<TopicPartition, CompletableFuture<OffsetAndMetadata>>> records) {
         Optional.of(records.stream()
-                    .filter(e -> e.getValue().isDone())
-                    .map(e -> tuple2(e).mapRight(f -> tryCatch(f::get)))
-                    .map(Tuple2::toMapEntry)
-                    .collect(mapEntryCollector()))
-                .filter(not(Map::isEmpty))
-                .ifPresent(this::commit);
+                    .filter(e -> e.getValue().isDone())                                 // filter for completed futures (should be all)
+                    .map(Tuple2::tuple2)                                                // turn into a tuple
+                    .map(t -> t.mapRight(tryCatch(CompletableFuture::get)))             // map the tuple, converting the future to its completed value
+                    .collect(tuple2Collector()))                                        // collect tuples to a map
+                .filter(not(Map::isEmpty))                                              // filter for empty maps
+                .ifPresent(this::commit);                                               // commit
     }
 
     interface Factory<K,V> extends KafkaConsumerAware<OffsetCommitStrategy,K,V> {

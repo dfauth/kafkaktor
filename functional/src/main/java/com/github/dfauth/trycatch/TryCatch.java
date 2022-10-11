@@ -51,6 +51,10 @@ public abstract class TryCatch {
 
     public static abstract class _Callable {
 
+        public static <T,R> Function<T,R> tryCatch(CallableFunction<T,R> f) {
+            return t -> tryCatch(f.apply(t), loggingOperator.andThen(CallableBuilder.propagationOperator()), Builder.noOpRunnable);
+        }
+
         public static <T> T tryCatch(Callable<T> c) {
             return tryCatch(c, loggingOperator.andThen(CallableBuilder.propagationOperator()), Builder.noOpRunnable);
         }
