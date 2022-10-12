@@ -14,14 +14,14 @@ public class ReducerTest {
 
     public static final List<Integer> REF = List.of(1,2,3,4,5,6,7,8);
     public static final List<Map.Entry<String, Integer>> REF1 = List.of(
-            Tuple2.of("prime", 11).toMapEntry(),
-            Tuple2.of("nonprime", 12).toMapEntry(),
-            Tuple2.of("prime", 13).toMapEntry(),
-            Tuple2.of("nonprime", 14).toMapEntry(),
-            Tuple2.of("nonprime", 15).toMapEntry(),
-            Tuple2.of("nonprime", 16).toMapEntry(),
-            Tuple2.of("prime", 17).toMapEntry(),
-            Tuple2.of("nonprime", 18).toMapEntry()
+            Tuple2.tuple2("prime", 11).toMapEntry(),
+            Tuple2.tuple2("nonprime", 12).toMapEntry(),
+            Tuple2.tuple2("prime", 13).toMapEntry(),
+            Tuple2.tuple2("nonprime", 14).toMapEntry(),
+            Tuple2.tuple2("nonprime", 15).toMapEntry(),
+            Tuple2.tuple2("nonprime", 16).toMapEntry(),
+            Tuple2.tuple2("prime", 17).toMapEntry(),
+            Tuple2.tuple2("nonprime", 18).toMapEntry()
     );
     public static final Function<Integer, String> classifier = i -> i%2 == 0 ? "EVEN" : "ODD";
     public static final Function<Integer, String> valueMapper = String::valueOf;

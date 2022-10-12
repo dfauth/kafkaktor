@@ -29,22 +29,22 @@ public interface Lists<T> extends List<T> {
 
     static <T> Tuple2<List<T>,List<T>> segment(List<T> l, Predicate<T> p) {
         int n = IntStream.range(0 ,l.size()).filter(i -> p.negate().test(l.get(i))).findFirst().orElse(0);
-        return Tuple2.of(l.subList(0, n), l.subList(n, l.size()));
+        return Tuple2.tuple2(l.subList(0, n), l.subList(n, l.size()));
     }
 
     static <T> Tuple2<List<T>,List<T>> partition(List<T> l, Predicate<T> p) {
         BiFunction<Tuple2<List<T>, List<T>>, Either<T, T>, Tuple2<List<T>, List<T>>> f = (_t, _e) ->
             _t.map((t1,t2) ->
                 _e.mapLeft(_l -> concat(t1, _l))
-                        .map(_t1 -> Tuple2.of(_t1, t2))
-                        .orElseGet(() -> Tuple2.of(t1, _e.mapRight(_r -> concat(t2, _r))
+                        .map(_t1 -> Tuple2.tuple2(_t1, t2))
+                        .orElseGet(() -> Tuple2.tuple2(t1, _e.mapRight(_r -> concat(t2, _r))
                                 .orElseThrow(() -> new IllegalStateException("Either is neither left nor right - should never happen"))))
             );
         return l.stream()
                 .map(e -> Optional.ofNullable(e).filter(p).map(Either::<T, T>createLeft).orElseGet(() -> Either.createRight(e)))
-                .reduce(Tuple2.of(emptyList(), emptyList()),
+                .reduce(Tuple2.tuple2(emptyList(), emptyList()),
                         f,
-                        (t1, t2) -> Tuple2.of(concat(t1._1(), t2._1()),concat(t1._2(), t2._2()))
+                        (t1, t2) -> Tuple2.tuple2(concat(t1._1(), t2._1()),concat(t1._2(), t2._2()))
                 );
     }
 
@@ -86,7 +86,7 @@ public interface Lists<T> extends List<T> {
         return extendedList(new ArrayList<>());
     }
 
-    static <T> ExtendedList<T> extendedList(List<T> l) {
+    static <T> ExtendedList<T> extendedList(Collection<T> l) {
         return new ExtendedList<>(l);
     }
 
@@ -136,7 +136,7 @@ public interface Lists<T> extends List<T> {
 
     class ExtendedList<T> extends ArrayList<T> implements Lists<T> {
 
-        public ExtendedList(List<T> l) {
+        public ExtendedList(Collection<T> l) {
             super(l);
         }
     }

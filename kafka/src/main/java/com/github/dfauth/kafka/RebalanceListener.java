@@ -1,11 +1,13 @@
 package com.github.dfauth.kafka;
 
+import com.github.dfauth.functional.Maps;
 import org.apache.kafka.common.TopicPartition;
 
 import java.time.ZonedDateTime;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -13,13 +15,16 @@ import java.util.stream.Collectors;
 import static com.github.dfauth.functional.Tuple2.asMapEntry;
 import static com.github.dfauth.functional.Tuple2.tuplize;
 import static com.github.dfauth.trycatch.TryCatch.Builder.tryCatch;
-import static java.util.function.Function.identity;
 
 public interface RebalanceListener<K,V> extends KafkaConsumerAware<Consumer<Collection<TopicPartition>>, K,V>{
 
-    static <K,V> RebalanceListener<K,V> offsetsFuture(Consumer<Map<TopicPartition,Long>> consumer) {
+    static <K,V> RebalanceListener<K,V> currentOffsets(Consumer<Map<TopicPartition,Long>> consumer) {
         return c -> tps ->
-            consumer.accept(tps.stream().collect(Collectors.toMap(identity(), c::position)));
+            consumer.accept(Maps.generate(tps, c::position));
+    }
+
+    static <K,V> RebalanceListener<K,V> currentOffsets(CompletableFuture<Map<TopicPartition,Long>> f) {
+        return c -> tps -> f.complete(Maps.generate(tps, c::position));
     }
 
     static <K,V> RebalanceListener<K,V> seekToBeginning() {

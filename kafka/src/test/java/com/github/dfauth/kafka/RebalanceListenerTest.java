@@ -114,7 +114,7 @@ public class RebalanceListenerTest {
         long o = 1L;
 
         CompletableFuture<TopicPartitionAware<ReplayMonitor>> f = new CompletableFuture<>();
-        RebalanceListener<String, String> rebalanceListener = RebalanceListener.<String,String>seekToBeginning().compose(offsetsFuture(tpm -> f.complete(replayMonitor(tpm))));
+        RebalanceListener<String, String> rebalanceListener = RebalanceListener.<String,String>seekToBeginning().compose(currentOffsets(tpm -> f.complete(replayMonitor(tpm))));
         KafkaConsumer<String, String> c = mock(KafkaConsumer.class);
         when(c.position(tp)).thenReturn(o);
         rebalanceListener.withKafkaConsumer(c).accept(Collections.singleton(tp));

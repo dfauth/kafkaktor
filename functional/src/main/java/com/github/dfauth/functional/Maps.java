@@ -1,5 +1,6 @@
 package com.github.dfauth.functional;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,10 +10,17 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.github.dfauth.functional.Collectors.tuple2Collector;
+import static com.github.dfauth.functional.Tuple2.tuplize;
+
 public interface Maps {
 
+    static <K,V> Map<K,V> generate(Collection<K> keys, Function<K,V> f) {
+        return keys.stream().map(tuplize(f)).collect(tuple2Collector());
+    }
+
     static <K,V,T> Function<Map<K,V>,Map<K,T>> mapTransformerOf(BiFunction<K,V,T> f) {
-        return mapTransformerOf(e -> Tuple2.of(e.getKey(), f.apply(e.getKey(), e.getValue())).toMapEntry());
+        return mapTransformerOf(e -> Tuple2.tuple2(e.getKey(), f.apply(e.getKey(), e.getValue())).toMapEntry());
     }
 
     static <K,V,T,R> Function<Map<K,V>,Map<T,R>> mapTransformerOf(Function<Map.Entry<K, V>, Map.Entry<T,R>> f) {
@@ -35,7 +43,7 @@ public interface Maps {
 
     static <K,V,T> Map<K,T> map(Map<K, V> m, BiFunction<K,V,T> f) {
         return m.entrySet().stream().map(
-                e -> Tuple2.tuple2(e).map(f.andThen(Tuple2.of(e.getKey()))).toMapEntry()
+                e -> Tuple2.tuple2(e).map(f.andThen(Tuple2.partialTuple2(e.getKey()))).toMapEntry()
         ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 

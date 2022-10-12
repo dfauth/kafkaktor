@@ -5,11 +5,20 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ForkJoinPool;
+import java.util.function.Function;
 
 import static com.github.dfauth.functional.Unit.UNIT;
 import static com.github.dfauth.trycatch.TryCatch._Callable.tryCatch;
 
 public class AsyncUtil {
+
+    public static <T,R> Function<T,CompletableFuture<R>> async(Function<T,R> f) {
+        return async(f, ForkJoinPool.commonPool());
+    }
+
+    public static <T,R> Function<T,CompletableFuture<R>> async(Function<T, R> f, ExecutorService executor) {
+        return t -> executeAsync(() -> f.apply(t), executor);
+    }
 
     public static CompletableFuture<Void> executeAsync(ExceptionalRunnable runnable) {
         return executeAsync(() -> {

@@ -21,20 +21,20 @@ public class ListsTest {
         assertEquals(1, (int)head(REF));
         assertEquals(Optional.of(1), headOption(REF));
         assertEquals(REF.subList(1, REF.size()), tail(REF));
-        assertEquals(Tuple2.of(LEFT,RIGHT), partition(REF, i -> i%2==0));
+        assertEquals(Tuple2.tuple2(LEFT,RIGHT), partition(REF, i -> i%2==0));
     }
 
     @Test
     public void testThat() {
-        assertEquals(Tuple2.of(LEFT, RIGHT), extendedList(REF).partition(i -> i%2==0));
+        assertEquals(Tuple2.tuple2(LEFT, RIGHT), extendedList(REF).partition(i -> i%2==0));
         assertEquals(1, (int)extendedList(REF).head());
         assertEquals(Optional.of(1), extendedList(REF).headOption());
         assertEquals(List.of(2,3,4,5,6,7,8), extendedList(REF).tail());
-        assertEquals(Tuple2.of(List.of(1), List.of(2,3,4,5,6,7,8)), extendedList(REF).segment());
+        assertEquals(Tuple2.tuple2(List.of(1), List.of(2,3,4,5,6,7,8)), extendedList(REF).segment());
         assertEquals(REF, extendedList(TOP).concat(5,6,7,8));
         assertEquals(List.of(4,3,2,1), extendedList(TOP).reverse());
         assertEquals(REF, extendedList(TOP).append(BOTTOM));
-        assertEquals(Tuple2.of(LEFT,RIGHT), extendedList(REF).partition(i -> i%2==0));
+        assertEquals(Tuple2.tuple2(LEFT,RIGHT), extendedList(REF).partition(i -> i%2==0));
     }
 
     @Test
@@ -47,8 +47,8 @@ public class ListsTest {
 
     @Test
     public void testSegment() {
-        assertEquals(Tuple2.of(List.of(1), List.of(2,3,4,5,6,7,8)), extendedList(REF).segment());
-        assertEquals(Tuple2.of(List.of(1,2,3,4), List.of(5,6,7,8)), extendedList(REF).segment(i -> i <= 4));
+        assertEquals(Tuple2.tuple2(List.of(1), List.of(2,3,4,5,6,7,8)), extendedList(REF).segment());
+        assertEquals(Tuple2.tuple2(List.of(1,2,3,4), List.of(5,6,7,8)), extendedList(REF).segment(i -> i <= 4));
     }
 
 }
