@@ -11,22 +11,22 @@ import static java.util.function.Function.identity;
 public interface Tuple2<T1, T2> {
 
     static <T1,T2> Function<T1, Tuple2<T1, T2>> tuplize(Function<T1,T2> f) {
-        return t1 -> of(t1, f.apply(t1));
+        return t1 -> tuple2(t1, f.apply(t1));
     }
 
     static <T1,T2> Function<T1, Map.Entry<T1, T2>> asMapEntry(Function<T1,T2> f) {
-        return t1 -> of(t1, f.apply(t1)).toMapEntry();
+        return t1 -> tuple2(t1, f.apply(t1)).toMapEntry();
     }
 
     static <T1,T2, T3> BiFunction<T1, T2, Map.Entry<T1, T3>> asMapEntry(BiFunction<T1,T2,T3> f) {
         return (t1, t2) -> {
             T3 t3 = f.apply(t1, t2);
-            return of(t1, t3).toMapEntry();
+            return tuple2(t1, t3).toMapEntry();
         };
     }
 
     private static <V, K, T> BiFunction<K,V,Map.Entry<K,T>> adapt(Function<Map.Entry<K, V>, Map.Entry<K, T>> f) {
-        return (k,v) -> f.apply(Tuple2.of(k, v).toMapEntry());
+        return (k,v) -> f.apply(Tuple2.tuple2(k, v).toMapEntry());
     }
 
     static <K, V, T> Function<Map.Entry<K,V>, Map.Entry<K,T>> adapt(BiFunction<K, V, Map.Entry<K, T>> f) {
@@ -34,18 +34,18 @@ public interface Tuple2<T1, T2> {
     }
 
     static <K, V, T> BiFunction<K,V,Tuple2<K, T>> of(BiFunction<K,V,T> f) {
-        return (k,v) -> of(k, f.apply(k,v));
+        return (k,v) -> tuple2(k, f.apply(k,v));
     }
 
     static <K, V> Tuple2<K, V> tuple2(Map.Entry<K,V> e) {
-        return of(e.getKey(), e.getValue());
+        return tuple2(e.getKey(), e.getValue());
     }
 
-    static <T1,T2> Function<T2,Tuple2<T1, T2>> of(T1 t1) {
-        return t2 -> Tuple2.of(t1,t2);
+    static <T1,T2> Function<T2,Tuple2<T1, T2>> partialTuple2(T1 t1) {
+        return t2 -> Tuple2.tuple2(t1,t2);
     }
 
-    static <T1,T2> Tuple2<T1, T2> of(T1 t1, T2 t2) {
+    static <T1,T2> Tuple2<T1, T2> tuple2(T1 t1, T2 t2) {
         return new Tuple2<>() {
             @Override
             public T1 _1() {
@@ -84,7 +84,7 @@ public interface Tuple2<T1, T2> {
     }
 
     static <T1,T2> Map.Entry<T1, T2> asMapEntry(T1 t1, T2 t2) {
-        return of(t1, t2).toMapEntry();
+        return tuple2(t1, t2).toMapEntry();
     }
 
     T1 _1();
@@ -96,7 +96,7 @@ public interface Tuple2<T1, T2> {
     }
 
     default <R1,R2> Tuple2<R1,R2> map(Function<T1,R1> f1, Function<T2,R2> f2) {
-        return Tuple2.of(f1.apply(_1()),f2.apply(_2()));
+        return Tuple2.tuple2(f1.apply(_1()),f2.apply(_2()));
     }
 
     default <R1> Tuple2<R1,T2> mapLeft(Function<T1,R1> f) {

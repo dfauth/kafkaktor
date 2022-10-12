@@ -58,6 +58,6 @@ public class PrimitiveHeader implements Header {
 
     public Tuple2<String, Object> rehydrate() {
         Object v = PrimitiveEncoding.tryDeserialize(value).orElse(value);
-        return Tuple2.of(key, v);
+        return Tuple2.tuple2(key, v);
     }
 }

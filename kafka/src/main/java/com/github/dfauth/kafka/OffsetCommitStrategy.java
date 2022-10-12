@@ -18,7 +18,6 @@ import static com.github.dfauth.functional.Collectors.tuple2Collector;
 import static com.github.dfauth.functional.Lists.extendedList;
 import static com.github.dfauth.functional.Lists.segment;
 import static com.github.dfauth.functional.Maps.extendedMap;
-import static com.github.dfauth.functional.Tuple2.of;
 import static com.github.dfauth.trycatch.TryCatch._Callable.tryCatch;
 import static java.util.function.Predicate.not;
 
@@ -126,18 +125,16 @@ interface OffsetCommitStrategy {
             Map<TopicPartition, List<CompletableFuture<OffsetAndMetadata>>> m = Reducer.<TopicPartition, CompletableFuture<OffsetAndMetadata>>mapEntryGroupingMappingReducer().reduce(records);
 
             // for each group, append to pending acks
-            m.forEach((k,v) -> {
-                pending.compute(k, (k1,v1) ->
-                        Optional.ofNullable(v1).map(_v1 ->
-                                extendedList(_v1).append(v)
-                        ).orElse(v)
-                );
-            });
+            m.forEach((k,v) -> pending.compute(k, (k1, v1) ->
+                    Optional.ofNullable(v1).map(_v1 ->
+                            extendedList(_v1).append(v)
+                    ).orElse(v)
+            ));
             // segment acks up to first incomplete ack
             Tuple2<Maps.ExtendedMap<TopicPartition,List<CompletableFuture<OffsetAndMetadata>>>, Maps.ExtendedMap<TopicPartition,List<CompletableFuture<OffsetAndMetadata>>>> m1 = pending.foldLeft(
-                    of(extendedMap(), extendedMap()),
+                    Tuple2.tuple2(extendedMap(), extendedMap()),
                     acc -> (k,v) -> segment(v, CompletableFuture::isDone) // Tuple2 of List of futures
-                            .map((t1,t2) -> of(
+                            .map((t1,t2) -> Tuple2.tuple2(
                                             extendedMap(acc._1()).mergeEntry(k, t1,(v1, v2) -> extendedList(v1).append(v2)),
                                             extendedMap(acc._2()).mergeEntry(k, t2,(v1, v2) -> extendedList(v1).append(v2))
                                     )

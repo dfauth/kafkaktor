@@ -18,7 +18,7 @@ public interface ConsumerRecordProcessor<T, R> extends Function<ConsumerRecord<T
 
         return r -> {
             recordConsumer.accept(r);
-            return Tuple2.of(new TopicPartition(r.topic(), r.partition()), DUMMY).toMapEntry();
+            return Tuple2.tuple2(new TopicPartition(r.topic(), r.partition()), DUMMY).toMapEntry();
         };
     }
 }

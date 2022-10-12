@@ -9,7 +9,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -37,7 +37,7 @@ public class StreamBuilder<K,V,T,R> {
     private OffsetCommitStrategy.Factory<K,V> offsetCommitStrategy = OffsetCommitStrategy.Factory.sync();
     private KafkaConsumerAware<OffsetCommitStrategy,K,V> commitListener = c -> m -> {};
     private Predicate<T> keyFilter = t -> true;
-    private ExecutorService executor;
+    private Executor executor;
 
     public static StreamBuilder<String,String,String,String> stringBuilder() {
         return new StreamBuilder<String,String,String,String>()
@@ -187,7 +187,7 @@ public class StreamBuilder<K,V,T,R> {
         private final Duration duration;
         private final ConsumerRecordProcessor<K, V> recordProcessor;
         private final AtomicBoolean isRunning = new AtomicBoolean(false);
-        private final ExecutorService executor;
+        private final Executor executor;
         private final Duration timeout;
         private final RebalanceListener<K,V> partitionRevocationListener;
         private final RebalanceListener<K,V> partitionAssignmentListener;
@@ -196,11 +196,11 @@ public class StreamBuilder<K,V,T,R> {
         private OffsetCommitStrategy offsetCommitStrategy;
         private final Predicate<ConsumerRecord<K,V>> keyFilter;
 
-        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, ConsumerRecordProcessor<K, V> recordProcessor, Duration duration, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, KafkaConsumerAware<OffsetCommitStrategy,K,V> commitStrategyFactory, ExecutorService executor, Predicate<K> keyFilter) {
+        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, ConsumerRecordProcessor<K, V> recordProcessor, Duration duration, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, KafkaConsumerAware<OffsetCommitStrategy,K,V> commitStrategyFactory, Executor executor, Predicate<K> keyFilter) {
             this(props, topic, keyDeserializer, valueDeserializer, recordProcessor, duration, Duration.ofMillis(1000), partitionAssignmentListener, partitionRevocationListener, commitStrategyFactory, executor, keyFilter);
         }
 
-        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, ConsumerRecordProcessor<K, V> recordProcessor, Duration duration, Duration timeout, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, KafkaConsumerAware<OffsetCommitStrategy,K,V> commitStrategyFactory, ExecutorService executor, Predicate<K> keyFilter) {
+        public KafkaStream(Map<String, Object> props, String topic, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, ConsumerRecordProcessor<K, V> recordProcessor, Duration duration, Duration timeout, RebalanceListener<K,V> partitionAssignmentListener, RebalanceListener<K,V> partitionRevocationListener, KafkaConsumerAware<OffsetCommitStrategy,K,V> commitStrategyFactory, Executor executor, Predicate<K> keyFilter) {
             this.props = props;
             this.topic = topic;
             this.keyDeserializer = keyDeserializer;
@@ -240,7 +240,7 @@ public class StreamBuilder<K,V,T,R> {
         }
 
         private void process() {
-            executor.submit(this);
+            executor.execute(this);
         }
 
         public void run() {
@@ -255,7 +255,7 @@ public class StreamBuilder<K,V,T,R> {
             if(!isRunning.get()) {
                 consumer.close(timeout);
             } else {
-                executor.submit(this);
+                executor.execute(this);
             }
         }
 
