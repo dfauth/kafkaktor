@@ -19,6 +19,7 @@ import static com.github.dfauth.functional.Lists.extendedList;
 import static com.github.dfauth.functional.Lists.segment;
 import static com.github.dfauth.functional.Maps.extendedMap;
 import static com.github.dfauth.trycatch.TryCatch._Callable.tryCatch;
+import static com.github.dfauth.trycatch.TryCatch._Runnable.tryCatchIgnore;
 import static java.util.function.Predicate.not;
 
 interface OffsetCommitStrategy {
@@ -59,8 +60,8 @@ interface OffsetCommitStrategy {
                 OffsetCommitStrategy tmp = withKafkaConsumer(c);
                 OffsetCommitStrategy tmp1 = next.withKafkaConsumer(c);
                     return m -> {
-                        tmp.commit(m);
-                        tmp1.commit(m);
+                        tryCatchIgnore(() -> tmp.commit(m));
+                        tryCatchIgnore(() -> tmp1.commit(m));
                     };
             };
         }
