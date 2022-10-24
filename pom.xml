@@ -32,6 +32,7 @@
 
   <modules>
     <module>avro</module>
+    <module>cache</module>
     <module>functional</module>
     <module>kafka</module>
     <module>kafkaktor</module>
