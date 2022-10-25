@@ -38,12 +38,12 @@ public class YieldTest {
                 .withPartitions(PARTITIONS)
                 .runAsyncTest(f -> config -> {
                     Assertions.Builder assertions = Assertions.builder();
-                    Assertions.OptionalQueue<CompletableFuture<String>> f0 = assertions.assertThat(k -> assertEquals(K1, k), k -> assertEquals(K2, k), k -> assertEquals(K3, k));
-                    Assertions.OptionalQueue<CompletableFuture<Map<String, Object>>> f1 = assertions.assertThat(h1 -> assertEquals(H1, h1),h2 -> assertEquals(H2, h2),h3 -> assertEquals(H3, h3));
-                    Assertions.OptionalQueue<CompletableFuture<String>> f2 = assertions.assertThat(v -> assertEquals(V1, v), v -> assertEquals(V2, v),v -> assertEquals(V3, v));
-                    Assertions.OptionalQueue<CompletableFuture<String>> f4 = assertions.assertThat(k -> assertEquals(K1, k), k -> assertEquals(K2, k),k -> assertEquals(K3, k));
-                    Assertions.OptionalQueue<CompletableFuture<Map<String, Object>>> f5 = assertions.assertThat(h1 -> assertEquals(H1, h1),h2 -> assertEquals(H2, h2),h3 -> assertEquals(H3, h3));
-                    Assertions.OptionalQueue<CompletableFuture<String>> f6 = assertions.assertThat(v -> assertEquals(V1, v), v -> assertEquals(V2, v),v -> assertEquals(V3, v));
+                    Assertions.AssertionCallback<String> f0 = assertions.assertThat(k -> assertEquals(K1, k), k -> assertEquals(K2, k), k -> assertEquals(K3, k));
+                    Assertions.AssertionCallback<Map<String, Object>> f1 = assertions.assertThat(h1 -> assertEquals(H1, h1), h2 -> assertEquals(H2, h2), h3 -> assertEquals(H3, h3));
+                    Assertions.AssertionCallback<String> f2 = assertions.assertThat(v -> assertEquals(V1, v), v -> assertEquals(V2, v), v -> assertEquals(V3, v));
+                    Assertions.AssertionCallback<String> f4 = assertions.assertThat(k -> assertEquals(K1, k), k -> assertEquals(K2, k), k -> assertEquals(K3, k));
+                    Assertions.AssertionCallback<Map<String, Object>> f5 = assertions.assertThat(h1 -> assertEquals(H1, h1), h2 -> assertEquals(H2, h2), h3 -> assertEquals(H3, h3));
+                    Assertions.AssertionCallback<String> f6 = assertions.assertThat(v -> assertEquals(V1, v), v -> assertEquals(V2, v), v -> assertEquals(V3, v));
                     assertions.build(f);
 
                     StreamBuilder<String, String, String, String> builder = StreamBuilder.<String>stringKeyUnmappedValueBuilder()
@@ -51,18 +51,18 @@ public class YieldTest {
                             .withProperties(config, ConsumerConfig.GROUP_ID_CONFIG, "blah1")
                             .withTopic(TOPIC)
                             .withRecordConsumer(toConsumerRecordConsumer((k, e) -> {
-                                    f0.poll().ifPresent(_f -> _f.complete(k));
-                                    f1.poll().ifPresent(_f -> _f.complete(e.messageContext().metadata()));
-                                    f2.poll().ifPresent(_f -> _f.complete(e.payload()));
+                                    f0.assertValue(k);
+                                    f1.assertValue(e.messageContext().metadata());
+                                    f2.assertValue(e.payload());
                                 }))
                             .onPartitionAssignment(RebalanceListener.seekToBeginning());
                     builder.build().start();
 
                     builder.withProperties(config, ConsumerConfig.GROUP_ID_CONFIG, "blah2")
                             .withRecordConsumer(toConsumerRecordConsumer((k,e) -> {
-                                f4.poll().ifPresent(_f -> _f.complete(k));
-                                f5.poll().ifPresent(_f -> _f.complete(e.messageContext().metadata()));
-                                f6.poll().ifPresent(_f -> _f.complete(e.payload()));
+                                f4.assertValue(k);
+                                f5.assertValue(e.messageContext().metadata());
+                                f6.assertValue(e.payload());
                             }))
                             .onPartitionAssignment(RebalanceListener.seekToBeginning())
                             .build().start();
