@@ -58,7 +58,7 @@ public class CacheTest {
                 .withGroupId("blah")
                 .runAsyncTest(f -> config -> {
                     Assertions.Builder assertionBuilder = Assertions.builder();
-                    Assertions.OptionalQueue<CompletableFuture<Object>> f1 = assertionBuilder.assertThat(a1 -> assertEquals(List.of(V), a1), a2 -> assertEquals(List.of(V, V1), a2));
+                    Assertions.AssertionCallback<List<String>> f1 = assertionBuilder.assertThat(a1 -> assertEquals(List.of(V), a1), a2 -> assertEquals(List.of(V, V1), a2));
                     assertionBuilder.build(f);
                     KafkaCache<String, String, String, String, List<String>> cache = KafkaCache.<String, String, List<String>>unmappedStringKeyBuilder()
                             .withValueDeserializer(new StringDeserializer())
@@ -66,11 +66,7 @@ public class CacheTest {
                             .withTopic(TOPIC)
                             .onPartitionAssignment(seekToBeginning())
                             .onCacheMiss(k -> new ArrayList<>())
-                            .computeIfPresent((oldV, newV) -> {
-                                List<String> result = Lists.concat(oldV, newV);
-                                f1.poll().ifPresent(_f -> _f.complete(result));
-                                return result;
-                            })
+                            .computeIfPresent((oldV, newV) -> f1.assertValue(Lists.concat(oldV, newV)))
                             .build();
 
                     cache.start();

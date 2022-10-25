@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
@@ -46,16 +45,28 @@ public interface Assertions extends Callable<CompletableFuture<Void>> {
         private final List<CompletableFuture<Void>> outputs = new ArrayList<>();
 
         @SafeVarargs
-        public final <T> OptionalQueue<CompletableFuture<T>> assertThat(Consumer<T>... c) {
+        public final <T> AssertionCallback<T> assertThat(Consumer<T>... c) {
             Queue<CompletableFuture<T>> q = new ArrayBlockingQueue<>(c.length);
             IntStream.rangeClosed(0,c.length-1).mapToObj(i -> assertThat(c[i])).forEach(q::offer);
-            return () -> Optional.ofNullable(q.poll());
+            return t -> {
+                CompletableFuture<T> e = q.poll();
+                if(e != null) {
+                    e.complete(t);
+                }
+                return t;
+            };
         }
 
-        public <T> OptionalQueue<CompletableFuture<T>> assertThat(Consumer<T> c, int n) {
+        public <T> AssertionCallback<T> assertThat(Consumer<T> c, int n) {
             Queue<CompletableFuture<T>> q = new ArrayBlockingQueue<>(n);
             IntStream.rangeClosed(0,n-1).mapToObj(ignored -> assertThat(c)).forEach(q::offer);
-            return () -> Optional.ofNullable(q.poll());
+            return t -> {
+                CompletableFuture<T> e = q.poll();
+                if (e != null) {
+                    e.complete(t);
+                }
+                return t;
+            };
         }
 
         public <T> CompletableFuture<T> assertThat(Consumer<T> c) {
@@ -83,7 +94,7 @@ public interface Assertions extends Callable<CompletableFuture<Void>> {
         }
     }
 
-    interface OptionalQueue<T> {
-        Optional<T> poll();
+    interface AssertionCallback<T> {
+        T assertValue(T t);
     }
 }
