@@ -2,9 +2,9 @@ package com.github.dfauth.kafka.cache;
 
 import com.github.dfauth.kafka.RebalanceListener;
 import com.github.dfauth.kafka.StreamBuilder;
-import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.LongDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -19,17 +19,18 @@ import java.util.function.Function;
 import static com.github.dfauth.functional.Functions.peek;
 import static com.github.dfauth.functional.Try.tryWithCallable;
 import static com.github.dfauth.kafka.RebalanceListener.noOp;
+import static com.github.dfauth.trycatch.TryCatch._Callable.tryCatch;
 
 public class KafkaCache<K, V, T, R, S> {
 
     private final StreamBuilder<K, V, T, R> builder;
-    private final Cache<T, S> cache;
+    private final LoadingCache<T, S> cache;
     private final BiConsumer<T, R> messageConsumer;
     private StreamBuilder.KafkaStream<K, V> stream;
-    private BiFunction<S,R,S> computeIfPresent;
-    private Function<T,S> computeIfAbsent;
+    private final BiFunction<S,R,S> computeIfPresent;
+    private final Function<T,S> computeIfAbsent;
 
-    public KafkaCache(StreamBuilder<K, V, T, R> builder, Cache<T, S> cache, BiConsumer<T, R> messageConsumer, RebalanceListener<K,V> partitionAssignmentConsumer, RebalanceListener<K,V> partitionRevocationConsumer, BiFunction<S,R,S> computeIfPresent, Function<T,S> computeIfAbsent) {
+    public KafkaCache(StreamBuilder<K, V, T, R> builder, LoadingCache<T, S> cache, BiConsumer<T, R> messageConsumer, RebalanceListener<K,V> partitionAssignmentConsumer, RebalanceListener<K,V> partitionRevocationConsumer, BiFunction<S,R,S> computeIfPresent, Function<T,S> computeIfAbsent) {
         this.builder = builder;
         this.cache = cache;
         this.messageConsumer = messageConsumer;
@@ -96,6 +97,10 @@ public class KafkaCache<K, V, T, R, S> {
         this.stream.stop();
     }
 
+    public Optional<S> get(T t) {
+        return Optional.ofNullable(tryCatch(() -> this.cache.get(t)));
+    }
+
     public static class Builder<K, V, T, R, S> {
 
         private final StreamBuilder<K, V, T, R> streamBuilder = StreamBuilder.builder();
@@ -113,7 +118,8 @@ public class KafkaCache<K, V, T, R, S> {
 
         public KafkaCache<K, V, T, R, S> build() {
 
-            CacheLoader<T,S> cacheLoader = new CacheLoader<T, S>() {
+            CacheLoader<T,S> cacheLoader = new CacheLoader<>() {
+
                 @Override
                 public S load(T t) {
                     return cacheMiss.apply(t);
