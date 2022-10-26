@@ -34,13 +34,6 @@ public class Function3TestCase implements TestData {
             Function<A, Function<B, Function<C, I>>> f = unwind(TestData::doit3);
             assertEquals(new I(), f.apply(new A()).apply(new B()).apply(new C()));
         }
-        {
-//            List<I> out = new ArrayList<>();
-//            Function3<Publisher<A>,Publisher<B>,Publisher<C>,Publisher<I>> f = CachingTransformer.compose(FunctionNTest::doit3);
-//            Publisher<I> p = f.apply(supply(new A()), supply(new B()), supply(new C()));
-//            Flux.from(p).subscribe(out::add);
-//            assertEquals(List.of(new I()), out);
-        }
     }
 
 }

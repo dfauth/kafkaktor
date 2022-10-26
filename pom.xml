@@ -28,6 +28,7 @@
     <avro.version>1.10.1</avro.version>
     <confluent.version>5.4.0</confluent.version>
     <guava.version>31.1-jre</guava.version>
+    <reactor-core.version>3.4.6</reactor-core.version>
   </properties>
 
   <modules>
@@ -37,6 +38,7 @@
     <module>kafka</module>
     <module>kafkaktor</module>
     <module>st8</module>
+    <module>subscribable</module>
   </modules>
 
   <dependencyManagement>
@@ -147,6 +149,11 @@
         <groupId>com.github.dfauth</groupId>
         <artifactId>st8</artifactId>
         <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.projectreactor</groupId>
+        <artifactId>reactor-core</artifactId>
+        <version>${reactor-core.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
