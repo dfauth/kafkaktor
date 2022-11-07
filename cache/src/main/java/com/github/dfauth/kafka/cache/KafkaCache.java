@@ -15,6 +15,8 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import static com.github.dfauth.functional.Functions.peek;
 import static com.github.dfauth.functional.Try.tryWithCallable;
@@ -26,11 +28,12 @@ public class KafkaCache<K, V, T, R, S> {
     private final StreamBuilder<K, V, T, R> builder;
     private final LoadingCache<T, S> cache;
     private final BiConsumer<T, R> messageConsumer;
-    private StreamBuilder.KafkaStream<K, V> stream;
+    private final int consumerCount;
+    private StreamBuilder.KafkaStream<K, V>[] streams;
     private final BiFunction<S,R,S> computeIfPresent;
     private final Function<T,S> computeIfAbsent;
 
-    public KafkaCache(StreamBuilder<K, V, T, R> builder, LoadingCache<T, S> cache, BiConsumer<T, R> messageConsumer, RebalanceListener<K,V> partitionAssignmentConsumer, RebalanceListener<K,V> partitionRevocationConsumer, BiFunction<S,R,S> computeIfPresent, Function<T,S> computeIfAbsent) {
+    public KafkaCache(StreamBuilder<K, V, T, R> builder, LoadingCache<T, S> cache, BiConsumer<T, R> messageConsumer, RebalanceListener<K,V> partitionAssignmentConsumer, RebalanceListener<K,V> partitionRevocationConsumer, BiFunction<S,R,S> computeIfPresent, Function<T,S> computeIfAbsent, int consumerCount) {
         this.builder = builder;
         this.cache = cache;
         this.messageConsumer = messageConsumer;
@@ -38,6 +41,7 @@ public class KafkaCache<K, V, T, R, S> {
         this.builder.onPartitionRevocation(partitionRevocationConsumer);
         this.computeIfPresent = computeIfPresent;
         this.computeIfAbsent = computeIfAbsent;
+        this.consumerCount = consumerCount;
     }
 
     public static <K, V, T, R, S> Builder<K, V, T, R, S> builder() {
@@ -81,20 +85,23 @@ public class KafkaCache<K, V, T, R, S> {
     }
 
     public void start() {
-        this.stream = this.builder.withKeyValueConsumer((t, r) -> {
-            cache.asMap()
-                    .compute(t,
-                            (k,v) -> Optional.ofNullable(v)
-                                    .map(oldV -> computeIfPresent.apply(oldV, r))
-                                    .orElseGet(() -> computeIfPresent.apply(tryWithCallable(() -> computeIfAbsent.apply(t)).toOptional().orElse(null),r))
-                    );
-            this.messageConsumer.accept(t, r);
-        }).build();
-        this.stream.start();
+        this.streams = new StreamBuilder.KafkaStream[consumerCount];
+        IntStream.range(0, this.streams.length).forEach(i -> {
+            this.streams[i] = this.builder.withKeyValueConsumer((t, r) -> {
+                cache.asMap()
+                        .compute(t,
+                                (k,v) -> Optional.ofNullable(v)
+                                        .map(oldV -> computeIfPresent.apply(oldV, r))
+                                        .orElseGet(() -> computeIfPresent.apply(tryWithCallable(() -> computeIfAbsent.apply(t)).toOptional().orElse(null),r))
+                        );
+                this.messageConsumer.accept(t, r);
+            }).build();
+            this.streams[i].start();
+        });
     }
 
     public void stop() {
-        this.stream.stop();
+        Stream.of(this.streams).forEach(StreamBuilder.KafkaStream::stop);
     }
 
     public Optional<S> get(T t) {
@@ -114,6 +121,7 @@ public class KafkaCache<K, V, T, R, S> {
         private Function<T, S> cacheMiss = t -> {
             throw new IllegalArgumentException("no cache value for key "+t);
         };
+        private int consumerCount = 1;
 
 
         public KafkaCache<K, V, T, R, S> build() {
@@ -132,12 +140,9 @@ public class KafkaCache<K, V, T, R, S> {
                     partitionAssignmentConsumer,
                     partitionRevocationConsumer,
                     computeIfPresent,
-                    cacheMiss  // computeIfAbsent
+                    cacheMiss,  // computeIfAbsent
+                    consumerCount
             );
-        }
-
-        private R create(T t) {
-            return null;
         }
 
         public KafkaCache.Builder<K, V, T, R, S> withKeyDeserializer(Deserializer<K> keyDeserializer) {
@@ -198,6 +203,11 @@ public class KafkaCache<K, V, T, R, S> {
 
         public Builder<K, V, T, R, S> computeIfPresent(BiFunction<S,R,S> computeIfPresent) {
             this.computeIfPresent = computeIfPresent;
+            return this;
+        }
+
+        public Builder<K, V, T, R, S> withConsumersNumbering(int consumerCount) {
+            this.consumerCount = consumerCount;
             return this;
         }
     }
