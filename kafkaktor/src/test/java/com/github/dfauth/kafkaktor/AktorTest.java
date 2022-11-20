@@ -33,32 +33,36 @@ public class AktorTest {
         try {
             TestAvroSerde serde = new TestAvroSerde();
 
-            CompletableFuture<Assertions> value = EmbeddedKafka.embeddedKafkaWithTopics(TOPIC)
-                    .withPartitions(PARTITIONS)
-                    .withGroupId("blah")
-                    .runAsyncTest(f -> config -> {
-                        AktorSystem system = new AktorSystem(config, serde);
-                        Assertions.Builder assertions = Assertions.builder();
-                        CompletableFuture<AktorMessageContext> f1 = assertions.assertThat(v -> {
-                            H.forEach((_k,_v) -> assertEquals(_v, v.metadata().get(_k)));
-                            assertTrue(v.metadata().containsKey(SENDER_KEY));
-                            assertTrue(v.metadata().containsKey(SENDER_TOPIC));
-                            assertTrue(v.metadata().containsKey(SENDER_PARTITION));
-                        });
-                        CompletableFuture<ActorCreationRequest> f2 = assertions.assertThat(v -> assertEquals(V, v));
-                        assertions.build(f);
+            EmbeddedKafka.EmbeddedKafkaRunner runner = EmbeddedKafka.embeddedKafkaWithTopics(TOPIC);
 
-                        CompletableFuture<AktorReference<ActorCreationRequest>> fRef = system.newAktor(ktx -> m -> p -> {
-                            f1.complete(m);
-                            f2.complete(p);
-                        });
+            try(runner) {
+                CompletableFuture<Assertions> value = runner
+                        .withPartitions(PARTITIONS)
+                        .withGroupId("blah")
+                        .runAsyncTest(f -> config -> {
+                            AktorSystem system = new AktorSystem(config, serde);
+                            Assertions.Builder assertions = Assertions.builder();
+                            CompletableFuture<AktorMessageContext> f1 = assertions.assertThat(v -> {
+                                H.forEach((_k,_v) -> assertEquals(_v, v.metadata().get(_k)));
+                                assertTrue(v.metadata().containsKey(SENDER_KEY));
+                                assertTrue(v.metadata().containsKey(SENDER_TOPIC));
+                                assertTrue(v.metadata().containsKey(SENDER_PARTITION));
+                            });
+                            CompletableFuture<ActorCreationRequest> f2 = assertions.assertThat(v -> assertEquals(V, v));
+                            assertions.build(f);
 
-                        fRef.thenAccept(ref -> {
-                            ref.tell(V, H);
-                        });
+                            CompletableFuture<AktorReference<ActorCreationRequest>> fRef = system.newAktor(ktx -> m -> p -> {
+                                f1.complete(m);
+                                f2.complete(p);
+                            });
 
-                    });
-            value.get(7000, TimeUnit.MILLISECONDS).performAssertions();
+                            fRef.thenAccept(ref -> {
+                                ref.tell(V, H);
+                            });
+
+                        });
+                value.get(7000, TimeUnit.MILLISECONDS).performAssertions();
+            }
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error(e.getMessage(), e);
             throw new RuntimeException(e);

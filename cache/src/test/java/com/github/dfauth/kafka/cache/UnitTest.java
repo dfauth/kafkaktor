@@ -27,32 +27,35 @@ public class UnitTest {
     @Test
     public void testIt() throws ExecutionException, InterruptedException {
         Cache<String, String> cache = CacheBuilder.newBuilder().build();
-        CompletableFuture<String> value = EmbeddedKafka.withEmbeddedKafka()
-                .withPartitions(PARTITIONS)
-                .withGroupId("blah")
-                .runAsyncTest(f -> config -> {
-                    StreamBuilder.KafkaStream<String, String> stream = StreamBuilder.stringBuilder()
-                            .withKeyDeserializer(new StringDeserializer())
-                            .withValueDeserializer(new StringDeserializer())
-                            .withProperties(config)
-                            .withTopic(TOPIC)
-                            .withKeyValueConsumer((k, v) -> {
-                                cache.put(k,v);
-                                f.complete(cache.getIfPresent(k));
-                            })
-                            .onPartitionAssignment(RebalanceListener.seekToBeginning())
-                            .build();
+        EmbeddedKafka.EmbeddedKafkaRunner runner = EmbeddedKafka.withEmbeddedKafka();
+        try(runner) {
+            CompletableFuture<String> value = runner
+                    .withPartitions(PARTITIONS)
+                    .withGroupId("blah")
+                    .runAsyncTest(f -> config -> {
+                        StreamBuilder.KafkaStream<String, String> stream = StreamBuilder.stringBuilder()
+                                .withKeyDeserializer(new StringDeserializer())
+                                .withValueDeserializer(new StringDeserializer())
+                                .withProperties(config)
+                                .withTopic(TOPIC)
+                                .withKeyValueConsumer((k, v) -> {
+                                    cache.put(k,v);
+                                    f.complete(cache.getIfPresent(k));
+                                })
+                                .onPartitionAssignment(RebalanceListener.seekToBeginning())
+                                .build();
 
-                    stream.start();
+                        stream.start(f);
 
-                    KafkaSink<String, String> sink = KafkaSink.newStringBuilder()
-                            .withProperties(config)
-                            .withTopic(TOPIC)
-                            .build();
-                    RecordMetadata m = sink.publish(K, V).get(1000, TimeUnit.MILLISECONDS);
-                    assertNotNull(m);
-                });
-        assertEquals(V, value.get());
+                        KafkaSink<String, String> sink = KafkaSink.newStringBuilder()
+                                .withProperties(config)
+                                .withTopic(TOPIC)
+                                .build();
+                        RecordMetadata m = sink.publish(K, V).get(1000, TimeUnit.MILLISECONDS);
+                        assertNotNull(m);
+                    });
+            assertEquals(V, value.get());
+        }
     }
 
 }

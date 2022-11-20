@@ -9,6 +9,7 @@ import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -17,6 +18,7 @@ import static com.github.dfauth.kafka.CompletableFutureAware.runProvidingFuture;
 import static com.github.dfauth.kafka.assertion.AsynchronousAssertionsAware.runProvidingAsynchronousAssertions;
 import static com.github.dfauth.trycatch.TryCatch._Callable.tryCatch;
 import static com.github.dfauth.trycatch.TryCatch._Runnable.tryCatchIgnore;
+import static java.util.function.Predicate.not;
 
 public class EmbeddedKafka {
 
@@ -49,6 +51,7 @@ public class EmbeddedKafka {
         private Map<String, Object> clientConfig = new HashMap<>();
         private int partitions;
         private EmbeddedKafkaBroker broker;
+        private CompletableFuture<?> f;
 
         public EmbeddedKafkaRunner(String[] topics, Map<String, String> brokerConfig) {
             this(topics, brokerConfig, 1);
@@ -98,10 +101,7 @@ public class EmbeddedKafka {
             Map<String, Object> p = new HashMap<>(this.clientConfig);
             p.putAll(ImmutableMap.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBrokersAsString()));
             CompletableFuture<T> _f = f.apply(p);
-            return _f.handle((r,e) -> {
-//                terminate(broker);
-                return r;
-            });
+            return registerForCallback(_f.handle((r,e) -> r));
         }
 
         public <T> CompletableFuture<T> runAsyncTest(CompletableFutureAware<T,Map<String, Object>> aware) {
@@ -109,10 +109,7 @@ public class EmbeddedKafka {
             broker.afterPropertiesSet();
             Map<String, Object> p = new HashMap<>(this.clientConfig);
             p.putAll(ImmutableMap.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBrokersAsString()));
-            return runProvidingFuture(aware).apply(p).handle((r,e) -> {
-//                terminate(broker);
-                return r;
-            });
+            return registerForCallback(runProvidingFuture(aware).apply(p).handle((r, e) -> r));
         }
 
         public AsynchronousAssertions runWithAssertions(AsynchronousAssertionsAware<Map<String, Object>> aware) {
@@ -128,8 +125,14 @@ public class EmbeddedKafka {
             return assertions;
         }
 
+        private <T> CompletableFuture<T> registerForCallback(CompletableFuture<T> f) {
+            this.f = f;
+            return f;
+        }
+
         @Override
         public void close() {
+            Optional.ofNullable(this.f).filter(not(CompletableFuture::isDone)).ifPresent(_f -> _f.cancel(true));
             terminate(broker);
         }
     }

@@ -48,7 +48,7 @@ public class OffsetCommitStrategyTest {
                             f.complete(offsetMonitor);
                         })
                         .build()
-                        .start();
+                        .start(f);
 
                 KafkaSink<String, String> sink = KafkaSink.<String>newStringKeyBuilder()
                         .withProperties(config)
