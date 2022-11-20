@@ -5,6 +5,7 @@ import com.github.dfauth.avro.actor.ActorCreationRequest;
 import com.github.dfauth.avro.actor.DirectoryRequest;
 import com.github.dfauth.avro.test.TestRequest;
 import com.github.dfauth.avro.test.TestResponse;
+import com.github.dfauth.kafka.EmbeddedKafka;
 import com.github.dfauth.kafka.assertion.Assertions;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
@@ -74,23 +75,26 @@ public class DispatchableAktorTest {
 
         TestAvroSerde serde = new TestAvroSerde();
 
-        CompletableFuture<Assertions> value = withEmbeddedKafka()
-                .withPartitions(PARTITIONS)
-                .runAsyncTest(f -> config -> {
-                    Assertions.Builder assertions = Assertions.builder();
-                    CompletableFuture<TestResponse> f1 = assertions.assertThat(r -> assertEquals(TestResponse.newBuilder().setKey(K).setValue(V).build(),r));
-                    assertions.build(f);
-                    AktorSystem system = AktorSystem.create(config, serde);
-                    Supervisor.create(system);
+        EmbeddedKafka.EmbeddedKafkaRunner runner = withEmbeddedKafka();
+        try(runner) {
+            CompletableFuture<Assertions> value = runner
+                    .withPartitions(PARTITIONS)
+                    .runAsyncTest(f -> config -> {
+                        Assertions.Builder assertions = Assertions.builder();
+                        CompletableFuture<TestResponse> f1 = assertions.assertThat(r -> assertEquals(TestResponse.newBuilder().setKey(K).setValue(V).build(),r));
+                        assertions.build(f);
+                        AktorSystem system = AktorSystem.create(config, serde);
+                        Supervisor.create(system);
 
-                    system.newAktor(onStartup(ctx -> {
-                        CompletableFuture<AktorReference<Dispatchable>> fRef = ctx.spawn("despatchable", DispatchableTestActor.class);
-                        fRef.thenApply(ref -> ref.<TestResponse>ask(TestRequest.newBuilder().setKey(K).setValue(V).build()).thenAccept(r -> {
-                            log.info("WOOZ received reply: {} from {}",r,ref.key());
-                            f1.complete(r);
+                        system.newAktor(onStartup(ctx -> {
+                            CompletableFuture<AktorReference<Dispatchable>> fRef = ctx.spawn("despatchable", DispatchableTestActor.class);
+                            fRef.thenApply(ref -> ref.<TestResponse>ask(TestRequest.newBuilder().setKey(K).setValue(V).build()).thenAccept(r -> {
+                                log.info("WOOZ received reply: {} from {}",r,ref.key());
+                                f1.complete(r);
+                            }));
                         }));
-                    }));
-                });
-        value.get(10000, TimeUnit.MILLISECONDS).performAssertions();
+                    });
+            value.get(10000, TimeUnit.MILLISECONDS).performAssertions();
+        }
     }
 }

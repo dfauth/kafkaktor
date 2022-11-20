@@ -3,6 +3,7 @@ package com.github.dfauth.kafkaktor;
 import com.github.dfauth.avro.TestAvroSerde;
 import com.github.dfauth.avro.test.TestRequest;
 import com.github.dfauth.avro.test.TestResponse;
+import com.github.dfauth.kafka.EmbeddedKafka;
 import com.github.dfauth.kafka.assertion.Assertions;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Ignore;
@@ -29,23 +30,27 @@ public class MultiplePartitionTest {
 
         TestAvroSerde serde = new TestAvroSerde();
 
-        CompletableFuture<Assertions> value = withEmbeddedKafka()
-                .withPartitions(PARTITIONS)
-                .runAsyncTest(f -> config -> {
+        EmbeddedKafka.EmbeddedKafkaRunner runner = withEmbeddedKafka();
 
-                    TestRequest REF1 = TestRequest.newBuilder().setKey(K).setValue("REF1").build();
-                    TestRequest REF2 = TestRequest.newBuilder().setKey(K).setValue("REF2").build();
+        try(runner) {
+            CompletableFuture<Assertions> value = withEmbeddedKafka()
+                    .withPartitions(PARTITIONS)
+                    .runAsyncTest(f -> config -> {
 
-                    Assertions.Builder assertions = Assertions.builder();
-                    CompletableFuture<TestResponse> f1 = assertions.assertThat(r -> assertEquals(REF1.respond(),r));
+                        TestRequest REF1 = TestRequest.newBuilder().setKey(K).setValue("REF1").build();
+                        TestRequest REF2 = TestRequest.newBuilder().setKey(K).setValue("REF2").build();
+
+                        Assertions.Builder assertions = Assertions.builder();
+                        CompletableFuture<TestResponse> f1 = assertions.assertThat(r -> assertEquals(REF1.respond(),r));
 //                    CompletableFuture<TestResponse> f2 = assertions.assertThat(r -> assertEquals(REF2,r.getValue()));
-                    assertions.build(f);
+                        assertions.build(f);
 
-                    blah(config, serde, f1, REF1);
+                        blah(config, serde, f1, REF1);
 //                    blah(config, avroSerialization, f2, REF2);
 
-                });
-        value.get(10000, TimeUnit.MILLISECONDS).performAssertions();
+                    });
+            value.get(10000, TimeUnit.MILLISECONDS).performAssertions();
+        }
     }
 
     private void blah(Map<String, Object> config, TestAvroSerde serde, CompletableFuture<TestResponse> f, TestRequest req) {

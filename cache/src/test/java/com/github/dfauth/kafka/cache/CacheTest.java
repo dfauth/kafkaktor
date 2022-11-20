@@ -1,6 +1,7 @@
 package com.github.dfauth.kafka.cache;
 
 import com.github.dfauth.functional.Lists;
+import com.github.dfauth.kafka.EmbeddedKafka;
 import com.github.dfauth.kafka.KafkaSink;
 import com.github.dfauth.kafka.assertion.Assertions;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -28,57 +29,63 @@ public class CacheTest {
 
     @Test
     public void testIt() throws ExecutionException, InterruptedException {
-        CompletableFuture<String> value = withEmbeddedKafka()
-                .withPartitions(PARTITIONS)
-                .withGroupId("blah")
-                .runAsyncTest(f -> config -> {
-                    KafkaCache<String, String, String, String, String> cache = KafkaCache.stringBuilder()
-                            .withProperties(config)
-                            .withTopic(TOPIC)
-                            .onPartitionAssignment(seekToBeginning())
-                            .onMessage((k,v) -> f.complete(v))
-                            .build();
+        EmbeddedKafka.EmbeddedKafkaRunner runner = withEmbeddedKafka();
+        try(runner) {
+            CompletableFuture<String> value = runner
+                    .withPartitions(PARTITIONS)
+                    .withGroupId("blah")
+                    .runAsyncTest(f -> config -> {
+                        KafkaCache<String, String, String, String, String> cache = KafkaCache.stringBuilder()
+                                .withProperties(config)
+                                .withTopic(TOPIC)
+                                .onPartitionAssignment(seekToBeginning())
+                                .onMessage((k,v) -> f.complete(v))
+                                .build();
 
-                    cache.start();
+                        cache.start(f);
 
-                    KafkaSink<String, String> sink = KafkaSink.newStringBuilder()
-                            .withProperties(config)
-                            .withTopic(TOPIC)
-                            .build();
-                    RecordMetadata m = sink.publish(K, V).get(1000, TimeUnit.MILLISECONDS);
-                    assertNotNull(m);
-                });
-        assertEquals(V, value.get());
+                        KafkaSink<String, String> sink = KafkaSink.newStringBuilder()
+                                .withProperties(config)
+                                .withTopic(TOPIC)
+                                .build();
+                        RecordMetadata m = sink.publish(K, V).get(1000, TimeUnit.MILLISECONDS);
+                        assertNotNull(m);
+                    });
+            assertEquals(V, value.get());
+        }
     }
 
     @Test
     public void testCollection() throws ExecutionException, InterruptedException {
-        CompletableFuture<Assertions> value = withEmbeddedKafka()
-                .withPartitions(PARTITIONS)
-                .withGroupId("blah")
-                .runAsyncTest(f -> config -> {
-                    Assertions.Builder assertionBuilder = Assertions.builder();
-                    Assertions.AssertionCallback<List<String>> f1 = assertionBuilder.assertThat(a1 -> assertEquals(List.of(V), a1), a2 -> assertEquals(List.of(V, V1), a2));
-                    assertionBuilder.build(f);
-                    KafkaCache<String, String, String, String, List<String>> cache = KafkaCache.<String, String, List<String>>unmappedStringKeyBuilder()
-                            .withValueDeserializer(new StringDeserializer())
-                            .withProperties(config)
-                            .withTopic(TOPIC)
-                            .onPartitionAssignment(seekToBeginning())
-                            .onCacheMiss(k -> new ArrayList<>())
-                            .computeIfPresent((oldV, newV) -> f1.assertValue(Lists.concat(oldV, newV)))
-                            .build();
+        EmbeddedKafka.EmbeddedKafkaRunner runner = withEmbeddedKafka();
+        try(runner) {
+            CompletableFuture<Assertions> value = runner
+                    .withPartitions(PARTITIONS)
+                    .withGroupId("blah")
+                    .runAsyncTest(f -> config -> {
+                        Assertions.Builder assertionBuilder = Assertions.builder();
+                        Assertions.AssertionCallback<List<String>> f1 = assertionBuilder.assertThat(a1 -> assertEquals(List.of(V), a1), a2 -> assertEquals(List.of(V, V1), a2));
+                        assertionBuilder.build(f);
+                        KafkaCache<String, String, String, String, List<String>> cache = KafkaCache.<String, String, List<String>>unmappedStringKeyBuilder()
+                                .withValueDeserializer(new StringDeserializer())
+                                .withProperties(config)
+                                .withTopic(TOPIC)
+                                .onPartitionAssignment(seekToBeginning())
+                                .onCacheMiss(k -> new ArrayList<>())
+                                .computeIfPresent((oldV, newV) -> f1.assertValue(Lists.concat(oldV, newV)))
+                                .build();
 
-                    cache.start();
+                        cache.start();
 
-                    KafkaSink<String, String> sink = KafkaSink.newStringBuilder()
-                            .withProperties(config)
-                            .withTopic(TOPIC)
-                            .build();
-                    assertNotNull(sink.publish(K, V).get(1000, TimeUnit.MILLISECONDS));
-                    assertNotNull(sink.publish(K, V1).get(1000, TimeUnit.MILLISECONDS));
-                });
-        value.get().performAssertions();
+                        KafkaSink<String, String> sink = KafkaSink.newStringBuilder()
+                                .withProperties(config)
+                                .withTopic(TOPIC)
+                                .build();
+                        assertNotNull(sink.publish(K, V).get(1000, TimeUnit.MILLISECONDS));
+                        assertNotNull(sink.publish(K, V1).get(1000, TimeUnit.MILLISECONDS));
+                    });
+            value.get().performAssertions();
+        }
     }
 
 }

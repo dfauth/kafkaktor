@@ -216,6 +216,11 @@ public class StreamBuilder<K,V,T,R> {
             this.keyFilter = r -> keyFilter.test(r.key());
         }
 
+        public CompletableFuture<Map<TopicPartition, Offsets>> start(CompletableFuture<?> f) {
+            f.thenAccept(_ignored -> stop());
+            return start();
+        }
+
         public CompletableFuture<Map<TopicPartition, Offsets>> start() {
             CompletableFuture<Map<TopicPartition, Offsets>> f = new CompletableFuture<>();
             OffsetContextMap offsetCtx = new OffsetContextMap(f);

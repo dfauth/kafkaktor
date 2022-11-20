@@ -11,6 +11,7 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -84,7 +85,15 @@ public class KafkaCache<K, V, T, R, S> {
                 .withValueMapper((k,v) -> v);
     }
 
+    public void start(CompletableFuture<?> f) {
+        start(s -> s.start(f));
+    }
+
     public void start() {
+        start(StreamBuilder.KafkaStream::start);
+    }
+
+    private void start(Consumer<StreamBuilder.KafkaStream<K,V>> consumer) {
         this.streams = new StreamBuilder.KafkaStream[consumerCount];
         IntStream.range(0, this.streams.length).forEach(i -> {
             this.streams[i] = this.builder.withKeyValueConsumer((t, r) -> {
@@ -96,7 +105,7 @@ public class KafkaCache<K, V, T, R, S> {
                         );
                 this.messageConsumer.accept(t, r);
             }).build();
-            this.streams[i].start();
+            consumer.accept(this.streams[i]);
         });
     }
 
