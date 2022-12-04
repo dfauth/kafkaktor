@@ -63,4 +63,5 @@ public interface RebalanceListener<K,V> extends KafkaConsumerAware<Consumer<Coll
     default RebalanceListener<K,V> andThen(RebalanceListener<K,V> following) {
         return following.compose(this);
     }
+
 }

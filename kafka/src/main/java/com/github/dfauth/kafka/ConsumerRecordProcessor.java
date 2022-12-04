@@ -1,6 +1,5 @@
 package com.github.dfauth.kafka;
 
-import com.github.dfauth.functional.Tuple2;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -18,7 +17,7 @@ public interface ConsumerRecordProcessor<T, R> extends Function<ConsumerRecord<T
 
         return r -> {
             recordConsumer.accept(r);
-            return Tuple2.tuple2(new TopicPartition(r.topic(), r.partition()), DUMMY).toMapEntry();
+            return Map.entry(new TopicPartition(r.topic(), r.partition()), DUMMY);
         };
     }
 }

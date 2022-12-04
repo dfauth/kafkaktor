@@ -22,6 +22,18 @@ public class Functions {
         };
     }
 
+    public static <S,T> Function<S,Consumer<T>> ignore(Consumer<T> c) {
+        return s -> c;
+    }
+
+    public static <S,T,R> Function<S,Function<T,R>> ignore(Function<T,R> f) {
+        return s -> f;
+    }
+
+    public static <S,T> Function<S,T> ignoreT(T t) {
+        return s -> t;
+    }
+
     public static Callable<Void> toCallable(Runnable r) {
         return () -> {
             r.run();

@@ -24,7 +24,7 @@ public interface MessageContextAware<T> {
 
             @Override
             public AktorReference<R> sender() {
-                return new KafkaAktorReference<>(ktx, AktorAddress.fromMetadata(metadata()));
+                return null;
             }
         }).accept(r.value());
     }

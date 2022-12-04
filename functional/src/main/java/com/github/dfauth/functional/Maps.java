@@ -10,21 +10,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.github.dfauth.functional.Collectors.mapEntryCollector;
 import static com.github.dfauth.functional.Collectors.tuple2Collector;
 import static com.github.dfauth.functional.Tuple2.tuplize;
+import static java.util.function.Function.identity;
 
 public interface Maps {
 
     static <K,V> Map<K,V> generate(Collection<K> keys, Function<K,V> f) {
         return keys.stream().map(tuplize(f)).collect(tuple2Collector());
-    }
-
-    static <K,V,T> Function<Map<K,V>,Map<K,T>> mapTransformerOf(BiFunction<K,V,T> f) {
-        return mapTransformerOf(e -> Tuple2.tuple2(e.getKey(), f.apply(e.getKey(), e.getValue())).toMapEntry());
-    }
-
-    static <K,V,T,R> Function<Map<K,V>,Map<T,R>> mapTransformerOf(Function<Map.Entry<K, V>, Map.Entry<T,R>> f) {
-        return m -> m.entrySet().stream().map(f).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     static <T, V, K> Function<Map.Entry<K,V>, T> mapEntryTransformer(BiFunction<K,V,T> f) {
@@ -41,10 +35,16 @@ public interface Maps {
         return Stream.of(maps).flatMap(m -> m.entrySet().stream()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, mergeFunction));
     }
 
-    static <K,V,T> Map<K,T> map(Map<K, V> m, BiFunction<K,V,T> f) {
-        return m.entrySet().stream().map(
-                e -> Tuple2.tuple2(e).map(f.andThen(Tuple2.partialTuple2(e.getKey()))).toMapEntry()
-        ).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    static <K,V,R> Map<K,R> map(Map<K, V> m, Function<V,R> f) {
+        return map(m, identity(), f);
+    }
+
+    static <K,V,T,R> Map<T,R> map(Map<K, V> m, Function<K,T> keyMapper, Function<V,R> valueMapper) {
+        return map(m, (k,v) -> Map.entry(keyMapper.apply(k), valueMapper.apply(v)));
+    }
+
+    static <K,V,T,R> Map<T,R> map(Map<K, V> m, BiFunction<K,V,Map.Entry<T,R>> f) {
+        return m.entrySet().stream().map(e -> f.apply(e.getKey(),e.getValue())).collect(mapEntryCollector());
     }
 
     static <T,K,V> T foldLeft(Map<K,V> m, T t, Function<T,BiFunction<K,V,T>> f) {
@@ -84,7 +84,15 @@ public interface Maps {
             super(m);
         }
 
-        public <T> ExtendedMap<K,T> map(BiFunction<K,V, T> f) {
+        public <R> ExtendedMap<K,R> map(Function<V,R> f) {
+            return extendedMap(Maps.map(this, f));
+        }
+
+        public <T,R> ExtendedMap<T,R> map(Function<K,T> keyMapper,Function<V,R> valueMapper) {
+            return extendedMap(Maps.map(this, keyMapper, valueMapper));
+        }
+
+        public <T,R> ExtendedMap<T,R> map(BiFunction<K,V,Map.Entry<T,R>> f) {
             return extendedMap(Maps.map(this, f));
         }
 

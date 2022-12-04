@@ -9,9 +9,9 @@ import java.util.function.Consumer;
 
 public abstract class DispatchableAktor implements Aktor<Dispatchable>, EnvelopeHandler<AktorMessageContext> {
 
-    private final KafkaAktorContext ctx;
+    private final AktorContext ctx;
 
-    protected DispatchableAktor(KafkaAktorContext ctx) {
+    protected DispatchableAktor(AktorContext ctx) {
         this.ctx = ctx;
     }
 
@@ -24,6 +24,6 @@ public abstract class DispatchableAktor implements Aktor<Dispatchable>, Envelope
 
     @Override
     public CompletableFuture<AktorAddress> start() {
-        return ctx.address();
+        return null;
     }
 }

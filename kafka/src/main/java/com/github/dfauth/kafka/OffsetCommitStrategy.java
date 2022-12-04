@@ -8,13 +8,10 @@ import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-import static com.github.dfauth.functional.Collectors.tuple2Collector;
+import static com.github.dfauth.functional.Collectors.mapEntryCollector;
 import static com.github.dfauth.functional.Lists.extendedList;
 import static com.github.dfauth.functional.Lists.segment;
 import static com.github.dfauth.functional.Maps.extendedMap;
@@ -24,16 +21,15 @@ import static java.util.function.Predicate.not;
 
 interface OffsetCommitStrategy {
 
-    void commit(Map<TopicPartition, OffsetAndMetadata> m);
+    Map<TopicPartition, OffsetAndMetadata> commit(Map<TopicPartition, OffsetAndMetadata> m);
 
-    default void commit(List<Map.Entry<TopicPartition, CompletableFuture<OffsetAndMetadata>>> records) {
-        Optional.of(records.stream()
-                    .filter(e -> e.getValue().isDone())                                 // filter for completed futures (should be all)
-                    .map(Tuple2::tuple2)                                                // turn into a tuple
-                    .map(t -> t.mapRight(tryCatch(CompletableFuture::get)))             // map the tuple, converting the future to its completed value
-                    .collect(tuple2Collector()))                                        // collect tuples to a map
-                .filter(not(Map::isEmpty))                                              // filter for empty maps
-                .ifPresent(this::commit);                                               // commit
+    default Map<TopicPartition, OffsetAndMetadata> commit(List<Map.Entry<TopicPartition, CompletableFuture<OffsetAndMetadata>>> records) {
+        return Optional.of(records.stream()
+                    .filter(e -> e.getValue().isDone())                                   // filter for completed futures (should be all)
+                    .map(e -> Map.entry(e.getKey(), tryCatch(() -> e.getValue().get())))  // map the tuple, converting the future to its completed value
+                    .collect(mapEntryCollector()))                                        // collect to a map
+                .filter(not(Map::isEmpty))                                                // filter for empty maps
+                .map(this::commit).orElse(Collections.emptyMap());                                                 // commit
     }
 
     interface Factory<K,V> extends KafkaConsumerAware<OffsetCommitStrategy,K,V> {
@@ -62,6 +58,7 @@ interface OffsetCommitStrategy {
                     return m -> {
                         tryCatchIgnore(() -> tmp.commit(m));
                         tryCatchIgnore(() -> tmp1.commit(m));
+                        return m;
                     };
             };
         }
@@ -76,14 +73,16 @@ interface OffsetCommitStrategy {
         }
 
         @Override
-        public void commit(Map<TopicPartition, OffsetAndMetadata> m) {
+        public Map<TopicPartition, OffsetAndMetadata> commit(Map<TopicPartition, OffsetAndMetadata> m) {
             if(m.size() > 0) {
                 consumer.commitSync();
             }
+            return m;
         }
 
         @Override
-        public void commit(List<Map.Entry<TopicPartition, CompletableFuture<OffsetAndMetadata>>> records) {
+        public Map<TopicPartition, OffsetAndMetadata> commit(List<Map.Entry<TopicPartition, CompletableFuture<OffsetAndMetadata>>> records) {
+            return null;
         }
     }
 
@@ -97,12 +96,14 @@ interface OffsetCommitStrategy {
         }
 
         @Override
-        public void commit(Map<TopicPartition, OffsetAndMetadata> m) {
+        public Map<TopicPartition, OffsetAndMetadata> commit(Map<TopicPartition, OffsetAndMetadata> m) {
             consumer.commitAsync((o,e) -> Optional.ofNullable(e).ifPresent(_e -> log.error(_e.getMessage(), _e)));
+            return m;
         }
 
         @Override
-        public void commit(List<Map.Entry<TopicPartition, CompletableFuture<OffsetAndMetadata>>> records) {
+        public Map<TopicPartition, OffsetAndMetadata> commit(List<Map.Entry<TopicPartition, CompletableFuture<OffsetAndMetadata>>> records) {
+            return commit(Collections.emptyMap());
         }
     }
 
@@ -116,12 +117,13 @@ interface OffsetCommitStrategy {
         }
 
         @Override
-        public void commit(Map<TopicPartition, OffsetAndMetadata> m) {
+        public Map<TopicPartition, OffsetAndMetadata> commit(Map<TopicPartition, OffsetAndMetadata> m) {
             consumer.commitSync(m);
+            return m;
         }
 
         @Override
-        public void commit(List<Map.Entry<TopicPartition, CompletableFuture<OffsetAndMetadata>>> records) {
+        public Map<TopicPartition, OffsetAndMetadata> commit(List<Map.Entry<TopicPartition, CompletableFuture<OffsetAndMetadata>>> records) {
             // group values by TopicPartition
             Map<TopicPartition, List<CompletableFuture<OffsetAndMetadata>>> m = Reducer.<TopicPartition, CompletableFuture<OffsetAndMetadata>>mapEntryGroupingMappingReducer().reduce(records);
 
@@ -146,8 +148,9 @@ interface OffsetCommitStrategy {
             // first part of the offsets to be synced
             // reduce to the maximum offset
             HashMap<TopicPartition, OffsetAndMetadata> commits = new HashMap<>();
-            m1._1().map((k,v) -> extendedList(v).reverse().head().thenAccept(o -> commits.put(k, o)));
+            m1._1().forEach((k,v) -> extendedList(v).reverse().head().thenAccept(o -> commits.put(k, o)));
             commit(commits);
+            return null;
         }
     }
 
@@ -161,8 +164,9 @@ interface OffsetCommitStrategy {
         }
 
         @Override
-        public void commit(Map<TopicPartition, OffsetAndMetadata> m) {
+        public Map<TopicPartition, OffsetAndMetadata> commit(Map<TopicPartition, OffsetAndMetadata> m) {
             consumer.commitAsync(m, (o,e) -> Optional.ofNullable(e).ifPresent(_e -> log.error(_e.getMessage(), _e)));
+            return m;
         }
     }
 }
