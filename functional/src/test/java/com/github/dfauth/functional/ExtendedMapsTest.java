@@ -13,7 +13,7 @@ public class ExtendedMapsTest {
 
     @Test
     public void testIt() {
-        assertEquals(Map.of("a", 1, "b", 4, "c", 9), extendedMap(REF).map((k, v) -> v*v));
+        assertEquals(Map.of("a", 1, "b", 4, "c", 9), extendedMap(REF).map(v -> v*v));
         assertEquals(Map.of("a", 1, "b", 2, "c", 4), extendedMap(REF).merge(Map.of("c",4)));
         assertEquals(Map.of("a", 1, "b", 2, "c", 3), extendedMap(REF).merge(Map.of("c",4), (v1,v2) -> v1));
         assertEquals(Map.of("a", 1, "b", 2, "c", 4), extendedMap(REF).mergeEntry("c",4));

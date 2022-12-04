@@ -109,7 +109,7 @@ public class EmbeddedKafka {
             broker.afterPropertiesSet();
             Map<String, Object> p = new HashMap<>(this.clientConfig);
             p.putAll(ImmutableMap.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBrokersAsString()));
-            return registerForCallback(runProvidingFuture(aware).apply(p).handle((r, e) -> r));
+            return registerForCallback(runProvidingFuture(aware).apply(p));
         }
 
         public AsynchronousAssertions runWithAssertions(AsynchronousAssertionsAware<Map<String, Object>> aware) {

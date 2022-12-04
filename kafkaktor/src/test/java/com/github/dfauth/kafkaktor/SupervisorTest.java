@@ -39,7 +39,7 @@ public class SupervisorTest {
                             Assertions.Builder assertions = Assertions.builder();
                             CompletableFuture<TestResponse> f1 = assertions.assertThat(r -> assertEquals(TestResponse.newBuilder().setKey(K).setValue(V).build(),r));
                             assertions.build(f);
-                            AktorSystem system = AktorSystem.create(config, serde);
+                            AktorSystem system = AktorSystem.builder().withConfig(config).withSerde(serde).build();
                             Supervisor.create(system);
 
                             system.newAktor(onStartup(ctx -> {

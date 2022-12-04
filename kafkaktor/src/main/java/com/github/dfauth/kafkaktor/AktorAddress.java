@@ -28,13 +28,6 @@ public class AktorAddress {
         this.partition = Optional.of(partition);
     }
 
-    public static AktorAddress fromMetadata(Map<String, Object> metadata) {
-        String key = (String) metadata.get(AktorMessageContext.SENDER_KEY);
-        String topic = (String) metadata.get(AktorMessageContext.SENDER_TOPIC);
-        int partition = (int) metadata.get(AktorMessageContext.SENDER_PARTITION);
-        return new AktorAddress(key, topic, partition);
-    }
-
     public Optional<Integer> partition() {
         return partition;
     }
@@ -65,8 +58,6 @@ public class AktorAddress {
     Map<String, Object> metadata(Map<String, Object> h, AktorAddress address) {
         Map<String, Object> tmp = new HashMap<>(h);
         tmp.put(AktorMessageContext.SENDER_KEY, address.key());
-        tmp.put(AktorMessageContext.SENDER_TOPIC, address.topic());
-        address.partition().ifPresent(p -> tmp.put(AktorMessageContext.SENDER_PARTITION, p));
         return tmp;
     }
 }

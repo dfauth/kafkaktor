@@ -1,6 +1,7 @@
 package com.github.dfauth.kafkaktor;
 
 import org.apache.avro.specific.SpecificRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 
 import java.util.Collections;
 import java.util.Map;
@@ -18,7 +19,7 @@ public interface AktorReference<T> {
         tell(t, Collections.emptyMap());
     }
 
-    void tell(T t, Map<String, Object> h);
+    CompletableFuture<RecordMetadata> tell(T t, Map<String, Object> h);
 
     String key();
 }

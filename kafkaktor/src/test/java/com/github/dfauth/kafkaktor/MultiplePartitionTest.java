@@ -6,6 +6,7 @@ import com.github.dfauth.avro.test.TestResponse;
 import com.github.dfauth.kafka.EmbeddedKafka;
 import com.github.dfauth.kafka.assertion.Assertions;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.avro.specific.SpecificRecord;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -54,15 +55,15 @@ public class MultiplePartitionTest {
     }
 
     private void blah(Map<String, Object> config, TestAvroSerde serde, CompletableFuture<TestResponse> f, TestRequest req) {
-        AktorSystem system = AktorSystem.create(config, serde);
+        AktorSystem system = AktorSystem.builder().withConfig(config).withSerde(serde).build();
 
-        CompletableFuture<AktorReference<TestRequest>> fRef = system.newAktor(oneTimeAktor(ctx -> m -> p ->
-                m.sender().tell(p.respond())
+        AktorReference<SpecificRecord> fRef = system.newAktor(oneTimeAktor(ctx -> m -> p -> {}
+//                m.sender().tell(p.respond())
         ));
 
-        fRef.thenAccept(ref -> system.newAktor(onStartup(ctx ->
-            ref.<TestResponse>ask(req).thenAccept(f::complete)
-        )));
+        system.newAktor(onStartup(ctx ->
+            fRef.<TestResponse>ask(req).thenAccept(f::complete)
+        ));
     }
 
     private <T> AktorContextAware<T> oneTimeAktor(AktorContextAware<T> f) {

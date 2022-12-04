@@ -14,9 +14,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import static com.github.dfauth.kafkaktor.AktorMessageContext.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static com.github.dfauth.kafkaktor.AktorMessageContext.SENDER_KEY;
+import static org.junit.Assert.*;
 
 @Slf4j
 public class AktorTest {
@@ -40,25 +39,29 @@ public class AktorTest {
                         .withPartitions(PARTITIONS)
                         .withGroupId("blah")
                         .runAsyncTest(f -> config -> {
-                            AktorSystem system = new AktorSystem(config, serde);
+                            AktorSystem system = AktorSystem.builder()
+                                    .withConfig(config)
+                                    .withSerde(serde)
+                                    .withCustomizer(b -> {})
+                                    .build();
+
+                            system.start(f);
                             Assertions.Builder assertions = Assertions.builder();
                             CompletableFuture<AktorMessageContext> f1 = assertions.assertThat(v -> {
                                 H.forEach((_k,_v) -> assertEquals(_v, v.metadata().get(_k)));
                                 assertTrue(v.metadata().containsKey(SENDER_KEY));
-                                assertTrue(v.metadata().containsKey(SENDER_TOPIC));
-                                assertTrue(v.metadata().containsKey(SENDER_PARTITION));
                             });
                             CompletableFuture<ActorCreationRequest> f2 = assertions.assertThat(v -> assertEquals(V, v));
                             assertions.build(f);
 
-                            CompletableFuture<AktorReference<ActorCreationRequest>> fRef = system.newAktor(ktx -> m -> p -> {
+                            AktorReference<ActorCreationRequest> fRef = system.newAktor(ktx -> m -> p -> {
                                 f1.complete(m);
                                 f2.complete(p);
                             });
 
-                            fRef.thenAccept(ref -> {
-                                ref.tell(V, H);
-                            });
+                            assertNotNull(
+                                    fRef.tell(V, H)
+                                            .get(100, TimeUnit.MILLISECONDS));
 
                         });
                 value.get(7000, TimeUnit.MILLISECONDS).performAssertions();
