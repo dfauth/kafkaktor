@@ -10,13 +10,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.github.dfauth.kafka.RebalanceListener.*;
-import static com.github.dfauth.kafka.TopicPartitionOffset.replayMonitor;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
@@ -105,21 +101,5 @@ public class RebalanceListenerTest {
         verify(c, times(0)).seekToEnd(tps);
         verify(c, times(0)).seek(any(), any());
         assertTrue(called.get());
-    }
-
-    @Test
-    public void testIt() throws ExecutionException, InterruptedException {
-
-        TopicPartition tp = new TopicPartition(T, P);
-        long o = 1L;
-
-        CompletableFuture<TopicPartitionAware<ReplayMonitor>> f = new CompletableFuture<>();
-        RebalanceListener<String, String> rebalanceListener = RebalanceListener.<String,String>seekToBeginning().compose(currentOffsets(tpm -> f.complete(replayMonitor(tpm))));
-        KafkaConsumer<String, String> c = mock(KafkaConsumer.class);
-        when(c.position(tp)).thenReturn(o);
-        rebalanceListener.withKafkaConsumer(c).accept(Collections.singleton(tp));
-        verify(c, times(1)).seekToBeginning(Collections.singleton(tp));
-        assertTrue(f.get().withTopicPartition(tp.topic(), tp.partition()).isReplay(0));
-        assertFalse(f.get().withTopicPartition(tp.topic(), tp.partition()).isReplay(o));
     }
 }
