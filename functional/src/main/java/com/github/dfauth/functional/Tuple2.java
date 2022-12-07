@@ -25,12 +25,8 @@ public interface Tuple2<T1, T2> {
         };
     }
 
-    private static <V, K, T> BiFunction<K,V,Map.Entry<K,T>> adapt(Function<Map.Entry<K, V>, Map.Entry<K, T>> f) {
-        return (k,v) -> f.apply(Tuple2.tuple2(k, v).toMapEntry());
-    }
-
-    static <K, V, T> Function<Map.Entry<K,V>, Map.Entry<K,T>> adapt(BiFunction<K, V, Map.Entry<K, T>> f) {
-        return e -> f.apply(e.getKey(), e.getValue());
+    static <K,V,T> Function<Map.Entry<K,V>,T> adapt(BiFunction<K, V, T> f2) {
+        return e -> f2.apply(e.getKey(), e.getValue());
     }
 
     static <K, V, T> BiFunction<K,V,Tuple2<K, T>> of(BiFunction<K,V,T> f) {
