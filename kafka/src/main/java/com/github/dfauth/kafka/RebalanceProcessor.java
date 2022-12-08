@@ -13,7 +13,7 @@ import java.util.function.Function;
 
 import static com.github.dfauth.kafka.recovery.RecoveryState.initial;
 
-public interface RebalanceProcessor<K,V,T> extends KafkaConsumerAware<Function<Collection<TopicPartition>,T>, K, V>{
+public interface RebalanceProcessor<K,V,T> extends KafkaConsumerAware<K,V,Function<Collection<TopicPartition>,T>>{
 
     static <K,V> RebalanceProcessor<K,V,Map<TopicPartition, RecoveryState>> currentOffsets(PartitionRecoveryListener recoveryListener) {
         return c -> tps -> Maps.generate(tps, tp -> initial(tp, c.position(tp)-1, recoveryListener));

@@ -32,7 +32,7 @@ interface OffsetCommitStrategy {
                 .map(this::commit).orElse(Collections.emptyMap());                                                 // commit
     }
 
-    interface Factory<K,V> extends KafkaConsumerAware<OffsetCommitStrategy,K,V> {
+    interface Factory<K,V> extends KafkaConsumerAware<K,V,OffsetCommitStrategy> {
 
         static <K,V> Factory<K,V> sync() {
             return SyncOffsetCommitStrategy::new;
@@ -47,11 +47,11 @@ interface OffsetCommitStrategy {
             return ExternalAsyncOffsetCommitStrategy::new;
         }
 
-        default KafkaConsumerAware<OffsetCommitStrategy,K,V> compose(Factory<K,V> next) {
+        default KafkaConsumerAware<K,V,OffsetCommitStrategy> compose(Factory<K,V> next) {
             return next.andThen(this);
         }
 
-        default KafkaConsumerAware<OffsetCommitStrategy,K,V> andThen(KafkaConsumerAware<OffsetCommitStrategy,K,V> next) {
+        default KafkaConsumerAware<K,V,OffsetCommitStrategy> andThen(KafkaConsumerAware<K,V,OffsetCommitStrategy> next) {
             return c -> {
                 OffsetCommitStrategy tmp = withKafkaConsumer(c);
                 OffsetCommitStrategy tmp1 = next.withKafkaConsumer(c);

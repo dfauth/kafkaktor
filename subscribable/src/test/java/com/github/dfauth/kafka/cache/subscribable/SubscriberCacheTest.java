@@ -64,12 +64,12 @@ public class SubscriberCacheTest {
 
                         List<String> out1 = new ArrayList<>();
                         cache.get(K).ifPresent(p -> Flux.from(p)
-                                .map(peek(s -> log.info("WOOZ1 {}",s)))
+                                .log("WOOZ1")
                                 .subscribe(out1::add));
 
                         List<String> out2 = new ArrayList<>();
                         cache.get(K).ifPresent(p -> Flux.from(p)
-                                .map(peek(s -> log.info("WOOZ2 {}",s)))
+                                .log("WOOZ2")
                                 .map(peek(s -> latch.countDown()))
                                 .subscribe(out2::add));
 
@@ -83,7 +83,7 @@ public class SubscriberCacheTest {
                         latch.await(10000, TimeUnit.MILLISECONDS);
                         List<String> out3 = new ArrayList<>();
                         cache.get(K).ifPresent(p -> Flux.from(p)
-                                .map(peek(s -> log.info("WOOZ3 {}",s)))
+                                .log("WOOZ3")
                                 .subscribe(out3::add));
 
                         assertionCallback.assertValue(out1);
