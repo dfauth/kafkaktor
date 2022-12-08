@@ -16,7 +16,7 @@ import static com.github.dfauth.functional.Tuple2.asMapEntry;
 import static com.github.dfauth.functional.Tuple2.tuplize;
 import static com.github.dfauth.trycatch.TryCatch.Builder.tryCatch;
 
-public interface RebalanceListener<K,V> extends KafkaConsumerAware<Consumer<Collection<TopicPartition>>, K,V>{
+public interface RebalanceListener<K,V> extends KafkaConsumerAware<K,V,Consumer<Collection<TopicPartition>>>{
 
     static <K,V> RebalanceListener<K,V> currentOffsets(Consumer<Map<TopicPartition,Long>> consumer) {
         return c -> tps ->
