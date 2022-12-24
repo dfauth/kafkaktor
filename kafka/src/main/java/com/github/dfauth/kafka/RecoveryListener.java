@@ -1,31 +1,37 @@
 package com.github.dfauth.kafka;
 
 import com.github.dfauth.kafka.recovery.PartitionRecoveryListener;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 
 import java.util.*;
 import java.util.function.Consumer;
 
-public class RecoveryListener<K, V> implements RebalanceListener<K, V>, PartitionRecoveryListener {
+public class RecoveryListener<K,V> implements PartitionRecoveryListener {
 
-    static <K,V> RecoveryListener<K,V> recoveryListener() {
-        return new RecoveryListener<>();
+    private final Map<TopicPartition, Long> recovering = new HashMap<>();
+    private final Map<TopicPartition, Long> recovered = new HashMap<>();
+    private Consumer<Map<TopicPartition, Long>> consumer;
+    private final Collection<TopicPartition> assigned = new ArrayList<>();
+
+    public RecoveryListener() {
     }
 
-    private List<TopicPartition> partitions = new ArrayList<>();
-    private Map<TopicPartition, Long> recovered = new HashMap<>();
-    private Consumer<Map<TopicPartition, Long>> consumer;
+    @Override
+    public void partitionsAssigned(Collection<TopicPartition> tps) {
+        this.assigned.addAll(tps);
+    }
 
     @Override
-    public Consumer<Collection<TopicPartition>> withKafkaConsumer(KafkaConsumer<K, V> consumer) {
-        return tps -> partitions.addAll(tps);
+    public void recovering(TopicPartition tp, long offset) {
+        assigned.remove(tp);
+        recovering.put(tp,offset);
     }
 
     public void recovered(TopicPartition tp, long offset) {
-        partitions.remove(tp);
+        recovering.remove(tp);
+        assigned.remove(tp);
         recovered.put(tp, offset);
-        if (partitions.isEmpty()) {
+        if (recovering.isEmpty() && assigned.isEmpty()) {
             Optional.ofNullable(consumer).ifPresent(c -> c.accept(recovered));
         }
     }
@@ -34,4 +40,5 @@ public class RecoveryListener<K, V> implements RebalanceListener<K, V>, Partitio
         this.consumer = consumer;
         return this;
     }
+
 }
