@@ -40,6 +40,13 @@ public class Functions {
         return e -> Map.entry(e.getKey(), f.apply(e));
     }
 
+    public static <K,V> Function<Map.Entry<K,V>,Map.Entry<K,V>> mapEntry(BiConsumer<K, V> c) {
+        return e -> {
+            c.accept(e.getKey(), e.getValue());
+            return e;
+        };
+    }
+
     public static <K,V,T> Function<Map.Entry<K,V>,Map.Entry<K,T>> mapEntryValue(Function<V, T> f) {
         return mapEntry(e -> f.apply(e.getValue()));
     }

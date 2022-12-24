@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import static com.github.dfauth.kafka.RebalanceListener.seekToBeginning;
 import static com.github.dfauth.kafka.utils.PrimitiveHeader.toConsumerRecordConsumer;
 import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
@@ -57,7 +58,7 @@ public class YieldTest {
                                     f1.assertValue(e.messageContext().metadata());
                                     f2.assertValue(e.payload());
                                 }))
-                                .onPartitionAssignment(RebalanceListener.seekToBeginning());
+                                .onPartitionAssignment(seekToBeginning());
                         builder.build().start(f);
 
                         builder.withProperties(config, ConsumerConfig.GROUP_ID_CONFIG, "blah2")
@@ -66,7 +67,7 @@ public class YieldTest {
                                     f5.assertValue(e.messageContext().metadata());
                                     f6.assertValue(e.payload());
                                 }))
-                                .onPartitionAssignment(RebalanceListener.seekToBeginning())
+                                .onPartitionAssignment(seekToBeginning())
                                 .build().start(f);
 
                         KafkaSink<String, String> sink = KafkaSink.<String>newStringKeyBuilder()

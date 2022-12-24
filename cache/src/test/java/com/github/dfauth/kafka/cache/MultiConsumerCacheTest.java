@@ -79,7 +79,7 @@ public class MultiConsumerCacheTest {
         }
     }
 
-    private static <K,V>RebalanceListener<K, V> logPartitionAssignment(String msg) {
+    private static <K,V> RebalanceListener<K, V> logPartitionAssignment(String msg) {
         return c -> tps -> tps.forEach(tp -> log.info(msg+" assigned partition "+tp+" to consumer "+c));
     }
 

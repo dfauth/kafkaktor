@@ -1,9 +1,17 @@
 package com.github.dfauth.functional;
 
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public interface Function2<A,B,C> extends BiFunction<A,B,C> {
+
+    static <A,B> Function2<A,B,Void> function2(BiConsumer<A,B> c) {
+        return (a,b) -> {
+            c.accept(a,b);
+            return null;
+        };
+    }
 
     static <A,B,C> Function2<A,B,C> function2(BiFunction<A,B,C> f) {
         return f::apply;

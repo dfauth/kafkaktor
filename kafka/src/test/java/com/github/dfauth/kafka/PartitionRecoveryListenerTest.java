@@ -18,7 +18,6 @@ import java.util.concurrent.TimeoutException;
 
 import static com.github.dfauth.functional.Tuple2.tuple2;
 import static com.github.dfauth.kafka.RebalanceListener.seekToBeginning;
-import static com.github.dfauth.kafka.RecoveryListener.recoveryListener;
 import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -41,8 +40,8 @@ public class PartitionRecoveryListenerTest {
                 StreamBuilder.stringBuilder()
                         .withProperties(config, ConsumerConfig.GROUP_ID_CONFIG, "blah1")
                         .withTopic(TOPIC)
-                        .withValueConsumer(v -> {})
                         .onPartitionAssignment(seekToBeginning())
+                        .withValueConsumer(v -> {})
                         .withRecoveryListener((tp,offset) -> {
                             f.complete(tuple2(tp,offset));
                         })
@@ -69,12 +68,11 @@ public class PartitionRecoveryListenerTest {
             CompletableFuture<List<TopicPartition>> value = runner.runAsyncTest(f -> config -> {
 
                 List<TopicPartition> partitions = new ArrayList<>();
-                RebalanceListener<String,String> count = c -> partitions::addAll;
                 StreamBuilder.stringBuilder()
                         .withProperties(config, ConsumerConfig.GROUP_ID_CONFIG, "blah1")
                         .withTopic(TOPIC)
                         .withValueConsumer(v -> {})
-                        .onPartitionAssignment(count.andThen(seekToBeginning()))
+                        .onPartitionAssignment(seekToBeginning())
                         .withRecoveryListener((tp,offset) -> {
                             partitions.remove(tp);
                             if(partitions.isEmpty()) {
@@ -104,12 +102,12 @@ public class PartitionRecoveryListenerTest {
         try(runner) {
             CompletableFuture<Map<TopicPartition, Long>> value = runner.runAsyncTest(f -> config -> {
 
-                RecoveryListener<String, String> recoveryListener = recoveryListener();
+                RecoveryListener<String,String> recoveryListener = new RecoveryListener<>();
                 StreamBuilder.stringBuilder()
                         .withProperties(config, ConsumerConfig.GROUP_ID_CONFIG, "blah1")
                         .withTopic(TOPIC)
                         .withValueConsumer(v -> {})
-                        .onPartitionAssignment(recoveryListener.andThen(seekToBeginning()))
+                        .onPartitionAssignment(seekToBeginning())
                         .withRecoveryListener(recoveryListener.onRecovery(f::complete))
                         .build()
                         .start(f);
@@ -121,6 +119,28 @@ public class PartitionRecoveryListenerTest {
                         .build();
                 assertNotNull(sink.publish(null, V).get(1000, TimeUnit.MILLISECONDS));
                 assertNotNull(sink.publish(null, V).get(1000, TimeUnit.MILLISECONDS));
+                sleep(10000);
+            });
+            assertEquals(Map.of(new TopicPartition(TOPIC,0),0L,new TopicPartition(TOPIC,1),0L), value.get(1000, TimeUnit.MILLISECONDS));
+        }
+    }
+
+    @Test
+    public void testNoMessages() throws ExecutionException, InterruptedException, TimeoutException {
+        EmbeddedKafka.EmbeddedKafkaRunner runner = EmbeddedKafka.embeddedKafkaWithTopics(TOPIC).withPartitions(2);
+
+        try(runner) {
+            CompletableFuture<Map<TopicPartition, Long>> value = runner.runAsyncTest(f -> config -> {
+
+                RecoveryListener<String, String> recoveryListener = new RecoveryListener<>();
+                StreamBuilder.stringBuilder()
+                        .withProperties(config, ConsumerConfig.GROUP_ID_CONFIG, "blah1")
+                        .withTopic(TOPIC)
+                        .withValueConsumer(v -> {})
+                        .onPartitionAssignment(seekToBeginning())
+                        .withRecoveryListener(recoveryListener.onRecovery(f::complete))
+                        .build()
+                        .start(f);
                 sleep(10000);
             });
             assertEquals(Map.of(new TopicPartition(TOPIC,0),0L,new TopicPartition(TOPIC,1),0L), value.get(1000, TimeUnit.MILLISECONDS));
