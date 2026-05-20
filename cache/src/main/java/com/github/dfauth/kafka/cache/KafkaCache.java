@@ -1,9 +1,7 @@
 package com.github.dfauth.kafka.cache;
 
 import com.github.dfauth.kafka.RebalanceListener;
-import com.github.dfauth.kafka.RebalanceProcessor;
 import com.github.dfauth.kafka.StreamBuilder;
-import com.github.dfauth.kafka.recovery.PartitionRecoveryListener;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -133,8 +131,6 @@ public class KafkaCache<K, V, T, R, S> {
             throw new IllegalArgumentException("no cache value for key "+t);
         };
         private int consumerCount = 1;
-        private PartitionRecoveryListener partitionRecoveryListener = (tp, o) -> {};
-        private RebalanceProcessor<K, V> watermarker = RebalanceProcessor.currentOffsets();
 
 
         public KafkaCache<K, V, T, R, S> build() {
@@ -147,17 +143,13 @@ public class KafkaCache<K, V, T, R, S> {
                 }
             };
             return new KafkaCache<>(
-                    streamBuilder
-                            .withKeyMapper(k -> keyMapper.apply(k, null))
-                            .withValueMapper(v -> valueMapper.apply(null, v))
-                            .withRecoveryListener(partitionRecoveryListener)
-                            .withHighWatermark(watermarker),
+                    streamBuilder.withKeyMapper(k -> keyMapper.apply(k, null)).withValueMapper(v -> valueMapper.apply(null, v)),
                     peek(cacheConfigurer).apply(CacheBuilder.newBuilder()).build(cacheLoader),
                     messageConsumer,
                     partitionAssignmentConsumer,
                     partitionRevocationConsumer,
                     computeIfPresent,
-                    cacheMiss,
+                    cacheMiss,  // computeIfAbsent
                     consumerCount
             );
         }
@@ -220,16 +212,6 @@ public class KafkaCache<K, V, T, R, S> {
 
         public Builder<K, V, T, R, S> computeIfPresent(BiFunction<S,R,S> computeIfPresent) {
             this.computeIfPresent = computeIfPresent;
-            return this;
-        }
-
-        public Builder<K, V, T, R, S> withRecoveryListener(PartitionRecoveryListener partitionRecoveryListener) {
-            this.partitionRecoveryListener = partitionRecoveryListener;
-            return this;
-        }
-
-        public Builder<K, V, T, R, S> withHighwatermark(RebalanceProcessor<K,V> watermarker) {
-            this.watermarker = watermarker;
             return this;
         }
 
